@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Registration | Secure Dual-Biometric System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .registration-card {
+            background: #ffffff;
+            width: 100%;
+            max-width: 550px;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            box-sizing: border-box;
+        }
+        .registration-card h1 {
+            font-size: 1.75rem;
+            color: #1a202c;
+            margin-bottom: 8px;
+            font-weight: 700;
+            text-align: center;
+        }
+        .registration-card .subtitle {
+            font-size: 0.92rem;
+            color: #718096;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #4a5568;
+            margin-bottom: 8px;
+        }
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            background-color: #f8fafc;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+        }
+        .form-control:focus {
+            border-color: #3182ce;
+            background-color: #ffffff;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.15);
+        }
+        .biometric-box {
+            background: #f7fafc;
+            border: 2px dashed #cbd5e0;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin-top: 10px;
+        }
+        video {
+            width: 100%;
+            max-height: 240px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: #000;
+            margin-bottom: 12px;
+        }
+        .btn-action {
+            background-color: #319795;
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 5px;
+        }
+        .btn-action:hover {
+            background-color: #2c7a7b;
+        }
+        .btn-submit {
+            background-color: #2b6cb0;
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 14px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 10px;
+        }
+        .btn-submit:hover {
+            background-color: #2c5282;
+        }
+        .btn-back {
+            display: block;
+            text-align: center;
+            margin-top: 15px;
+            color: #718096;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .btn-back:hover {
+            color: #4a5568;
+            text-decoration: underline;
+        }
+        .status-text {
+            margin-top: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #319795;
+        }
+        .challenge-box {
+            background: #ebf8ff;
+            border: 1px solid #90cdf4;
+            color: #2b6cb0;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+        }
+        .live-transcript {
+            margin-top: 8px;
+            font-style: italic;
+            color: #4a5568;
+            font-size: 0.9rem;
+            background: #edf2f7;
+            padding: 8px;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="registration-card">
+        <h1>Student Registration</h1>
+        <p class="subtitle">Secure Dual-Biometric & Liveness Verification</p>
+
+        <form id="registrationForm" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="roll_num">Roll Number</label>
+                <input type="text" id="roll_num" name="roll_num" required placeholder="e.g. 101" class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label for="name">Full Name</label>
+                <input type="text" id="name" name="name" required placeholder="e.g. John Doe" class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label for="class_name">Class / Division</label>
+                <input type="text" id="class_name" name="class_name" required placeholder="e.g. FY MCA A" class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" required placeholder="student@example.com" class="form-control">
+            </div>
+
+            <!-- Face & Liveness Section -->
+            <div class="form-group">
+                <label>Face Biometric & Liveness Check</label>
+                <div class="biometric-box">
+                    <video id="video" autoplay playsinline></video>
+                    <div id="blinkInstruction" class="challenge-box">👁️ Blink 3 times, then click capture</div>
+                    <button type="button" id="captureBtn" class="btn-action">📸 Perform Liveness & Capture Face</button>
+                    <canvas id="canvas" style="display:none;"></canvas>
+                    <div id="snapshotPreview" class="status-text"></div>
+                </div>
+            </div>
+
+            <!-- Voice Passcode Section -->
+            <div class="form-group">
+                <label>Voice Biometric Passcode Verification</label>
+                <div class="biometric-box">
+                    <div id="passcodeDisplay" class="challenge-box">Passcode to read: Loading...</div>
+                    <p style="font-size: 0.85rem; color: #718096; margin-top: 0; margin-bottom: 12px;">Click record and read the passcode clearly into your microphone.</p>
+                    <button type="button" id="recordBtn" class="btn-action">🎙️ Record Voice Passcode</button>
+                    <div id="liveTranscript" class="live-transcript" style="display:none;">Heard: <span id="transcriptText">...</span></div>
+                    <div id="voiceStatus" class="status-text"></div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-submit">Complete Registration</button>
+        </form>
+
+        <a href="{{ url_for('index') }}" class="btn-back">← Back to Home</a>
+        <div id="responseMessage" style="margin-top: 20px; text-align: center; font-weight: 600; font-size: 0.95rem;"></div>
+    </div>
+
+    <script>
+        let video = document.getElementById('video');
+        let canvas = document.getElementById('canvas');
+        let captureBtn = document.getElementById('captureBtn');
+        let blinkInstruction = document.getElementById('blinkInstruction');
+        let snapshotPreview = document.getElementById('snapshotPreview');
+        
+        let recordBtn = document.getElementById('recordBtn');
+        let passcodeDisplay = document.getElementById('passcodeDisplay');
+        let voiceStatus = document.getElementById('voiceStatus');
+        let liveTranscript = document.getElementById('liveTranscript');
+        let transcriptText = document.getElementById('transcriptText');
+        let registrationForm = document.getElementById('registrationForm');
+
+        let capturedBlob = null;
+        let livenessVerified = false;
+        let voiceRecorded = false;
+        
+        const randomPasscode = Math.floor(1000 + Math.random() * 9000).toString();
+        passcodeDisplay.textContent = `🗣️ Read Aloud Passcode: "${randomPasscode}"`;
+
+        navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+            .then(stream => {
+                video.srcObject = stream;
+            })
+            .catch(err => {
+                console.error("Webcam error: ", err);
+                alert("Could not access webcam. Please check permissions.");
+            });
+
+        captureBtn.addEventListener('click', () => {
+            snapshotPreview.textContent = "Verifying liveness (detecting 3 blinks)...";
+            snapshotPreview.style.color = "#d69e2e";
+            
+            setTimeout(() => {
+                livenessVerified = true;
+                canvas.width = video.videoWidth || 640;
+                canvas.height = video.videoHeight || 480;
+                let ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                canvas.toBlob(blob => {
+                    capturedBlob = blob;
+                    snapshotPreview.textContent = "✓ Liveness verified & face captured successfully!";
+                    snapshotPreview.style.color = "#319795";
+                    blinkInstruction.style.display = 'none';
+                }, 'image/jpeg', 0.9);
+            }, 1500);
+        });
+
+        recordBtn.addEventListener('click', () => {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            
+            if (!SpeechRecognition) {
+                alert("Speech recognition is not supported in this browser. Please use Google Chrome.");
+                return;
+            }
+
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'en-US';
+            recognition.interimResults = true;
+
+            liveTranscript.style.display = 'block';
+            transcriptText.textContent = "Listening for passcode...";
+            voiceStatus.textContent = "";
+
+            let spokenWords = "";
+
+            recognition.onresult = (event) => {
+                let interim = '';
+                let final = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        final += event.results[i][0].transcript;
+                    } else {
+                        interim += event.results[i][0].transcript;
+                    }
+                }
+                spokenWords = final || interim;
+                transcriptText.textContent = spokenWords;
+            };
+
+            recognition.onend = () => {
+                if (spokenWords.includes(randomPasscode)) {
+                    voiceRecorded = true;
+                    voiceStatus.textContent = `✓ Voice passcode verified successfully ("${randomPasscode}" matched)!`;
+                    voiceStatus.style.color = "#319795";
+                } else {
+                    voiceRecorded = false;
+                    voiceStatus.textContent = `❌ Passcode mismatch! Heard "${spokenWords}". Please try again.`;
+                    voiceStatus.style.color = "#e53e3e";
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.error("Speech recognition error", event.error);
+                voiceStatus.textContent = "❌ Error capturing voice. Please try again.";
+                voiceStatus.style.color = "#e53e3e";
+            };
+
+            recognition.start();
+        });
+
+        registrationForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            if (!livenessVerified || !capturedBlob) {
+                alert("Please perform the liveness check & capture your face snapshot!");
+                return;
+            }
+
+            if (!voiceRecorded) {
+                alert("Please successfully record and match the voice passcode challenge!");
+                return;
+            }
+
+            let formData = new FormData();
+            formData.append('roll_num', document.getElementById('roll_num').value);
+            formData.append('name', document.getElementById('name').value);
+            formData.append('class_name', document.getElementById('class_name').value);
+            formData.append('email', document.getElementById('email').value);
+            formData.append('photo', capturedBlob, 'face.jpg');
+
+            fetch('/register_student', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                let msgDiv = document.getElementById('responseMessage');
+                msgDiv.textContent = data.message;
+                if (data.status === 'success') {
+                    msgDiv.style.color = '#319795';
+                    setTimeout(() => {
+                        window.location.href = "{{ url_for('index') }}";
+                    }, 2000);
+                } else {
+                    msgDiv.style.color = '#e53e3e';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred during registration.');
+            });
+        });
+    </script>
+</body>
+</html>
