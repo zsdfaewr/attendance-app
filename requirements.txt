@@ -1,4 +1,6 @@
-flask
+Flask
+gunicorn
 opencv-python-headless
 numpy
-gunicorn
+librosa
+soundfile
