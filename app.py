@@ -328,28 +328,27 @@ def send_absent_alerts():
     if not absent_students:
         return "No absent students found to notify!", 200
 
-    # Replace with your actual Gmail address and 16-character App Password
-    sender_email = "your_actual_email@gmail.com"
-    sender_password = "your_app_password"
+    # Pull credentials from environment variables (or replace directly with your Gmail & 16-character App Password)
+    sender_email = os.environ.get('MAIL_USERNAME', 'toraskarsanket2002@gmail.com')
+    sender_password = os.environ.get('MAIL_PASSWORD', 'ujtoxdkqnmrjduhp')
 
     try:
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
-        server.login(sender_email, sender_password)
+        # Using Port 465 with SMTP_SSL for stable secure connection
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+            server.login(sender_email, sender_password)
 
-        for name, email in absent_students:
-            if email:
-                msg = MIMEMultipart()
-                msg['From'] = sender_email
-                msg['To'] = email
-                msg['Subject'] = "Attendance Alert: Marked Absent Today"
-                
-                body = f"Hello {name},\n\nYou have been marked absent for today's session. Please contact administration if this is an error.\n\nBest regards,\nSmart Attendance System"
-                msg.attach(MIMEText(body, 'plain'))
-                
-                server.sendmail(sender_email, email, msg.as_string())
+            for name, email in absent_students:
+                if email:
+                    msg = MIMEMultipart()
+                    msg['From'] = sender_email
+                    msg['To'] = email
+                    msg['Subject'] = "Attendance Alert: Marked Absent Today"
+                    
+                    body = f"Hello {name},\n\nYou have been marked absent for today's session. Please contact administration if this is an error.\n\nBest regards,\nSmart Attendance System"
+                    msg.attach(MIMEText(body, 'plain'))
+                    
+                    server.sendmail(sender_email, email, msg.as_string())
 
-        server.quit()
         return redirect(url_for('admin_dashboard'))
     except Exception as e:
         return f"Failed to send emails. Make sure sender credentials are correct. Error: {str(e)}"
