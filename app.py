@@ -5,6 +5,7 @@ import numpy as np
 import librosa
 import soundfile as sf
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+from werkzeug.routing import BuildError
 
 app = Flask(__name__)
 app.secret_key = 'smart_attendance_master_secret_key'
@@ -13,6 +14,12 @@ UPLOAD_FOLDER = 'static/uploads'
 AUDIO_FOLDER = 'static/audio'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(AUDIO_FOLDER, exist_ok=True)
+
+# Debug error handler for BuildError
+@app.errorhandler(BuildError)
+def handle_build_error(error):
+    print(f"🚨 CRITICAL BUILD ERROR: {error}")
+    return f"Template BuildError: {error}", 500
 
 # Database Connection Helper
 def get_db_connection():
@@ -71,7 +78,6 @@ def admin_dashboard():
 def delete_student(roll_no):
     conn = get_db_connection()
     cursor = conn.cursor()
-    # Remove student record and their attendance history
     cursor.execute("DELETE FROM students WHERE roll_no = ?", (roll_no,))
     cursor.execute("DELETE FROM attendance_history WHERE roll_no = ?", (roll_no,))
     conn.commit()
@@ -90,27 +96,35 @@ def clear_database():
     flash('All student records and data cleared successfully.', 'success')
     return redirect(url_for('admin_dashboard'))
 
-# --- Biometric & Alpha Fusion Engine Routes (Placeholder/Integration) ---
+# --- Biometric Registration Route (JSON API + HTML View) ---
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        roll_no = request.form.get('roll_no')
+        roll_no = request.form.get('roll_num')
         name = request.form.get('name')
         class_name = request.form.get('class_name')
+        email = request.form.get('email')
         
-        # Save student logic here (Alpha Fusion Face & Voice capture processing)
+        photo = request.files.get('photo')
+        photo_path = 'static/default.jpg'
+        if photo:
+            photo_path = os.path.join(UPLOAD_FOLDER, f"{roll_no}_face.jpg")
+            photo.save(photo_path)
+        
         conn = get_db_connection()
         cursor = conn.cursor()
         try:
-            cursor.execute("INSERT OR REPLACE INTO students (roll_no, name, class_name, photo_path) VALUES (?, ?, ?, ?)",
-                           (roll_no, name, class_name, 'static/default.jpg'))
+            cursor.execute("""
+                INSERT OR REPLACE INTO students (roll_no, name, class_name, photo_path) 
+                VALUES (?, ?, ?, ?)
+            """, (roll_no, name, class_name, photo_path))
             conn.commit()
-            flash('Student registered successfully!', 'success')
+            return jsonify({'status': 'success', 'message': 'Student registered successfully!'})
         except Exception as e:
-            flash(f'Error registering student: {e}', 'danger')
+            return jsonify({'status': 'error', 'message': f'Error: {e}'})
         finally:
             conn.close()
-        return redirect(url_for('admin_dashboard'))
+            
     return render_template('register.html')
 
 # --- Student Self-Service Portal Routes ---
