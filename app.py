@@ -7,7 +7,7 @@ import csv
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, make_response
-from werkzeug.routing import BuildHeaderError, BuildError
+from werkzeug.routing import BuildError
 
 # Optional PDF generation import via ReportLab
 try:
