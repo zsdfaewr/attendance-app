@@ -2,6 +2,9 @@ import os
 import sqlite3
 import datetime
 import random
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from werkzeug.routing import BuildError
 
@@ -12,6 +15,12 @@ UPLOAD_FOLDER = 'static/uploads'
 AUDIO_FOLDER = 'static/audio'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(AUDIO_FOLDER, exist_ok=True)
+
+# Email configuration (Replace with your SMTP settings or App Password)
+SMTP_SERVER = "smtp.gmail.com"
+SMTP_PORT = 587
+SENDER_EMAIL = "your_email@gmail.com"
+SENDER_PASSWORD = "your_email_app_password"
 
 @app.errorhandler(BuildError)
 def handle_build_error(error):
@@ -31,6 +40,7 @@ def init_db():
             roll_no TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             class_name TEXT NOT NULL,
+            parent_email TEXT,
             photo_path TEXT,
             audio_path TEXT
         )
@@ -51,6 +61,39 @@ def init_db():
 
 init_db()
 
+def send_parent_email(parent_email, student_name, status, date):
+    """Sends email notification to parents regarding student attendance."""
+    if not parent_email:
+        return
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = SENDER_EMAIL
+        msg['To'] = parent_email
+        msg['Subject'] = f"Attendance Alert: {student_name} is {status}"
+
+        body = f"""
+        Dear Parent,
+        
+        This is an automated notification from the Secure Biometric Attendance System.
+        
+        Student Name: {student_name}
+        Status for {date}: {status}
+        
+        If you have any queries, please contact the institution administration.
+        
+        Best regards,
+        Smart Attendance System
+        """
+        msg.attach(MIMEText(body, 'plain'))
+
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server.starttls()
+        server.login(SENDER_EMAIL, SENDER_PASSWORD)
+        server.sendmail(SENDER_EMAIL, parent_email, msg.as_string())
+        server.quit()
+    except Exception as e:
+        print(f"⚠️ Email notification error: {e}")
+
 def alpha_fusion_engine(face_confidence, voice_confidence, alpha=0.6):
     fused_score = (alpha * face_confidence) + ((1 - alpha) * voice_confidence)
     return round(fused_score, 2)
@@ -58,6 +101,12 @@ def alpha_fusion_engine(face_confidence, voice_confidence, alpha=0.6):
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/api/get-dynamic-code')
+def get_dynamic_code():
+    """Generates a secure random 4-digit dynamic voice code for liveness."""
+    code = str(random.randint(1000, 9999))
+    return jsonify({'dynamic_code': code})
 
 @app.route('/admin-login', methods=['GET', 'POST'])
 def admin_login():
@@ -118,6 +167,7 @@ def register():
         roll_no = request.form.get('roll_num')
         name = request.form.get('name')
         class_name = request.form.get('class_name')
+        parent_email = request.form.get('parent_email')
         face_image = request.files.get('face_image')
         voice_verified_flag = request.form.get('voice_verified', 'false')
         
@@ -132,9 +182,9 @@ def register():
         cursor = conn.cursor()
         try:
             cursor.execute("""
-                INSERT OR REPLACE INTO students (roll_no, name, class_name, photo_path, audio_path) 
-                VALUES (?, ?, ?, ?, ?)
-            """, (roll_no, name, class_name, photo_path, audio_path))
+                INSERT OR REPLACE INTO students (roll_no, name, class_name, parent_email, photo_path, audio_path) 
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (roll_no, name, class_name, parent_email, photo_path, audio_path))
             conn.commit()
             return jsonify({'status': 'success', 'message': 'Student registered successfully with Face & Voice biometrics!'})
         except Exception as e:
@@ -172,11 +222,11 @@ def mark_attendance():
     
     fusion_score = alpha_fusion_engine(face_confidence, voice_confidence, alpha=0.6)
     
+    now = datetime.datetime.now()
+    date_str = now.strftime("%Y-%m-%d")
+    time_str = now.strftime("%H:%M:%S")
+    
     if fusion_score >= 0.75 and voice_verified_flag == 'true':
-        now = datetime.datetime.now()
-        date_str = now.strftime("%Y-%m-%d")
-        time_str = now.strftime("%H:%M:%S")
-        
         cursor.execute("""
             INSERT INTO attendance_history (roll_no, class_name, status, fusion_score, date, time_verified)
             VALUES (?, ?, 'Present', ?, ?, ?)
@@ -184,15 +234,27 @@ def mark_attendance():
         conn.commit()
         conn.close()
         
+        # Send Present Notification to Parent Email
+        send_parent_email(student['parent_email'], student['name'], 'Present', date_str)
+        
         return jsonify({
             'status': 'success', 
-            'message': f"Attendance marked for {student['name']}! (Alpha Fusion Confidence: {fusion_score * 100}%)"
+            'message': f"Attendance marked Present for {student['name']}! (Alpha Fusion: {fusion_score * 100}%)"
         })
     else:
+        cursor.execute("""
+            INSERT INTO attendance_history (roll_no, class_name, status, fusion_score, date, time_verified)
+            VALUES (?, ?, 'Absent', ?, ?, ?)
+        """, (roll_no, student['class_name'], fusion_score, date_str, time_str))
+        conn.commit()
         conn.close()
+        
+        # Send Absent Notification to Parent Email
+        send_parent_email(student['parent_email'], student['name'], 'Absent (Verification Failed)', date_str)
+        
         return jsonify({
             'status': 'error', 
-            'message': f"Biometric verification failed. Fusion score ({fusion_score * 100}%) below security threshold."
+            'message': f"Biometric verification failed. Fusion score ({fusion_score * 100}%) below threshold. Marked Absent & Parent Notified."
         })
 
 @app.route('/student-login', methods=['GET', 'POST'])
@@ -224,7 +286,7 @@ def student_dashboard():
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    cursor.execute("SELECT roll_no, name, class_name, photo_path FROM students WHERE roll_no = ?", (roll_no,))
+    cursor.execute("SELECT roll_no, name, class_name, parent_email, photo_path FROM students WHERE roll_no = ?", (roll_no,))
     student = cursor.fetchone()
     
     cursor.execute("SELECT date, status, fusion_score, time_verified FROM attendance_history WHERE roll_no = ? ORDER BY date DESC", (roll_no,))

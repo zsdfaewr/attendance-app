@@ -19,6 +19,7 @@
         .btn:hover { background-color: #2c7a7b; }
         .btn-secondary { background-color: #4a5568; }
         .btn-secondary:hover { background-color: #2d3748; }
+        .dynamic-badge { background: #ebf8ff; color: #2b6cb0; padding: 8px 12px; border-radius: 6px; font-weight: 700; font-size: 1.1rem; display: inline-block; margin-bottom: 10px; letter-spacing: 2px; }
         .status-text { font-size: 0.85rem; font-weight: 600; margin-top: 8px; color: #e53e3e; }
         .back-link { display: block; margin-top: 20px; color: #718096; text-decoration: none; font-size: 0.9rem; }
         .back-link:hover { color: #4a5568; text-decoration: underline; }
@@ -27,7 +28,7 @@
 <body>
     <div class="card">
         <h1>✅ Mark Attendance</h1>
-        <p class="subtitle">Alpha Fusion Engine (Face & Voice Passcode)</p>
+        <p class="subtitle">Alpha Fusion & Dynamic Voice Liveness</p>
         <form id="attendanceForm">
             <div class="form-group">
                 <label for="roll_num">Roll Number</label>
@@ -42,11 +43,14 @@
                 <div id="snapshotPreview" class="status-text">Face verification pending...</div>
             </div>
             <div class="form-group">
-                <label>Voice Passcode Verification</label>
-                <button type="button" id="speakBtn" class="btn btn-secondary">🎙️ Speak Passcode ("secure attendance")</button>
+                <label>Dynamic Voice Liveness Passcode</label>
+                <div style="text-align: center;">
+                    <span id="dynamicCodeBox" class="dynamic-badge">Loading...</span>
+                </div>
+                <button type="button" id="speakBtn" class="btn btn-secondary">🎙️ Speak Dynamic Code</button>
                 <div id="voiceStatus" class="status-text">Voice verification pending...</div>
             </div>
-            <button type="submit" class="btn">Submit Dual-Biometric Attendance</button>
+            <button type="submit" class="btn">Submit Attendance</button>
         </form>
         <div id="responseMessage" style="margin-top: 15px; font-weight: 600; font-size: 0.9rem;"></div>
         <a href="{{ url_for('index') }}" class="back-link">← Back to Home</a>
@@ -59,14 +63,25 @@
         const snapshotPreview = document.getElementById('snapshotPreview');
         const speakBtn = document.getElementById('speakBtn');
         const voiceStatus = document.getElementById('voiceStatus');
+        const dynamicCodeBox = document.getElementById('dynamicCodeBox');
         const attendanceForm = document.getElementById('attendanceForm');
+
         let livenessVerified = false;
         let voiceVerified = false;
         let capturedBlob = null;
-        const REQUIRED_VOICE_CODE = "secure attendance";
+        let requiredCode = "";
+
+        fetch('/api/get-dynamic-code')
+            .then(res => res.json())
+            .then(data => {
+                requiredCode = data.dynamic_code;
+                dynamicCodeBox.textContent = requiredCode;
+            });
+
         navigator.mediaDevices.getUserMedia({ video: true })
             .then(stream => { video.srcObject = stream; })
             .catch(err => { alert("Webcam access denied or unavailable."); });
+
         captureBtn.addEventListener('click', () => {
             canvas.width = video.videoWidth || 640;
             canvas.height = video.videoHeight || 480;
@@ -75,37 +90,37 @@
             canvas.toBlob((blob) => {
                 capturedBlob = blob;
                 livenessVerified = true;
-                snapshotPreview.textContent = "✓ Face liveness verified successfully!";
+                snapshotPreview.textContent = "✓ Face liveness verified!";
                 snapshotPreview.style.color = "#319795";
             }, 'image/jpeg', 0.85);
         });
+
         speakBtn.addEventListener('click', () => {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) {
-                alert("Speech recognition is not supported in this browser. Try Google Chrome.");
+                alert("Speech recognition not supported in this browser. Use Chrome.");
                 return;
             }
             const recognition = new SpeechRecognition();
             recognition.lang = 'en-US';
-            voiceStatus.textContent = `Listening... Say passcode: "${REQUIRED_VOICE_CODE}"`;
+            voiceStatus.textContent = `Listening... Say: "${requiredCode}"`;
             voiceStatus.style.color = "#d69e2e";
+
             recognition.onresult = (event) => {
                 let speechResult = event.results[0][0].transcript.toLowerCase().trim();
-                if (speechResult === REQUIRED_VOICE_CODE) {
+                if (speechResult.includes(requiredCode)) {
                     voiceVerified = true;
-                    voiceStatus.textContent = "✓ Voice passcode verified successfully!";
+                    voiceStatus.textContent = "✓ Voice passcode verified!";
                     voiceStatus.style.color = "#319795";
                 } else {
-                    voiceStatus.textContent = `❌ Incorrect: "${speechResult}". Try again.`;
+                    voiceStatus.textContent = `❌ Heard: "${speechResult}". Say: ${requiredCode}`;
                     voiceStatus.style.color = "#e53e3e";
                 }
             };
-            recognition.onerror = () => {
-                voiceStatus.textContent = "Voice recognition error. Please try again.";
-                voiceStatus.style.color = "#e53e3e";
-            };
+
             recognition.start();
         });
+
         attendanceForm.addEventListener('submit', (e) => {
             e.preventDefault();
             if (!livenessVerified || !capturedBlob) {
@@ -113,26 +128,22 @@
                 return;
             }
             if (!voiceVerified) {
-                alert("Please complete voice passcode verification first!");
+                alert("Please verify your voice dynamic code first!");
                 return;
             }
+
             const rollNum = document.getElementById('roll_num').value;
             let formData = new FormData();
             formData.append('roll_num', rollNum);
             formData.append('face_image', capturedBlob, 'snapshot.jpg');
             formData.append('voice_verified', voiceVerified ? 'true' : 'false');
-            fetch('/mark_attendance', {
-                method: 'POST',
-                body: formData
-            })
+
+            fetch('/mark_attendance', { method: 'POST', body: formData })
             .then(res => res.json())
             .then(data => {
                 let msgDiv = document.getElementById('responseMessage');
                 msgDiv.textContent = data.message;
                 msgDiv.style.color = data.status === 'success' ? '#319795' : '#e53e3e';
-            })
-            .catch(err => {
-                alert("An error occurred while submitting attendance.");
             });
         });
     </script>

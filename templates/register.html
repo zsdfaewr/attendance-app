@@ -19,6 +19,7 @@
         .btn:hover { background-color: #2c7a7b; }
         .btn-secondary { background-color: #4a5568; }
         .btn-secondary:hover { background-color: #2d3748; }
+        .dynamic-badge { background: #ebf8ff; color: #2b6cb0; padding: 8px 12px; border-radius: 6px; font-weight: 700; font-size: 1.1rem; display: inline-block; margin-bottom: 10px; letter-spacing: 2px; }
         .status-text { font-size: 0.85rem; font-weight: 600; margin-top: 8px; color: #e53e3e; }
         .back-link { display: block; margin-top: 20px; color: #718096; text-decoration: none; font-size: 0.9rem; }
         .back-link:hover { color: #4a5568; text-decoration: underline; }
@@ -27,7 +28,7 @@
 <body>
     <div class="card">
         <h1>📝 New Student Registration</h1>
-        <p class="subtitle">Dual-Biometric Profile Setup (Face & Voice)</p>
+        <p class="subtitle">Dual-Biometric Profile Setup & Parent Alerts</p>
         <form id="registerForm">
             <div class="form-group">
                 <label for="roll_num">Roll Number</label>
@@ -41,6 +42,10 @@
                 <label for="class_name">Class / Division</label>
                 <input type="text" id="class_name" name="class_name" required placeholder="e.g. MCA-III" class="form-control">
             </div>
+            <div class="form-group">
+                <label for="parent_email">Parent / Guardian Email (For Absent Alerts)</label>
+                <input type="email" id="parent_email" name="parent_email" required placeholder="parent@example.com" class="form-control">
+            </div>
 
             <div class="form-group">
                 <label>Face Biometric Capture</label>
@@ -52,12 +57,15 @@
             </div>
 
             <div class="form-group">
-                <label>Voice Passcode Registration</label>
-                <button type="button" id="speakBtn" class="btn btn-secondary">🎙️ Record Passcode ("secure attendance")</button>
-                <div id="voiceStatus" class="status-text">Voice passcode pending...</div>
+                <label>Voice Liveness (Dynamic Code)</label>
+                <div style="text-align: center;">
+                    <span id="dynamicCodeBox" class="dynamic-badge">Loading...</span>
+                </div>
+                <button type="button" id="speakBtn" class="btn btn-secondary">🎙️ Read Dynamic Code</button>
+                <div id="voiceStatus" class="status-text">Voice verification pending...</div>
             </div>
 
-            <button type="submit" class="btn">Complete Dual-Biometric Registration</button>
+            <button type="submit" class="btn">Complete Registration</button>
         </form>
         <div id="responseMessage" style="margin-top: 15px; font-weight: 600; font-size: 0.9rem;"></div>
         <a href="{{ url_for('index') }}" class="back-link">← Back to Home</a>
@@ -70,12 +78,21 @@
         const snapshotPreview = document.getElementById('snapshotPreview');
         const speakBtn = document.getElementById('speakBtn');
         const voiceStatus = document.getElementById('voiceStatus');
+        const dynamicCodeBox = document.getElementById('dynamicCodeBox');
         const registerForm = document.getElementById('registerForm');
 
         let faceCaptured = false;
         let voiceRegistered = false;
         let capturedBlob = null;
-        const REQUIRED_VOICE_CODE = "secure attendance";
+        let requiredCode = "";
+
+        // Fetch dynamic verification code on load
+        fetch('/api/get-dynamic-code')
+            .then(res => res.json())
+            .then(data => {
+                requiredCode = data.dynamic_code;
+                dynamicCodeBox.textContent = requiredCode;
+            });
 
         navigator.mediaDevices.getUserMedia({ video: true })
             .then(stream => { video.srcObject = stream; })
@@ -97,28 +114,29 @@
         speakBtn.addEventListener('click', () => {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) {
-                alert("Speech recognition is not supported in this browser. Try Google Chrome.");
+                alert("Speech recognition not supported in this browser. Use Chrome.");
                 return;
             }
             const recognition = new SpeechRecognition();
             recognition.lang = 'en-US';
-            voiceStatus.textContent = `Listening... Speak passcode: "${REQUIRED_VOICE_CODE}"`;
+            voiceStatus.textContent = `Listening... Say: "${requiredCode}"`;
             voiceStatus.style.color = "#d69e2e";
 
             recognition.onresult = (event) => {
                 let speechResult = event.results[0][0].transcript.toLowerCase().trim();
-                if (speechResult === REQUIRED_VOICE_CODE) {
+                // Check if spoken text contains or matches the dynamic code
+                if (speechResult.includes(requiredCode)) {
                     voiceRegistered = true;
-                    voiceStatus.textContent = "✓ Voice passcode registered successfully!";
+                    voiceStatus.textContent = "✓ Voice dynamic code verified!";
                     voiceStatus.style.color = "#319795";
                 } else {
-                    voiceStatus.textContent = `❌ Incorrect: "${speechResult}". Say exact passcode.`;
+                    voiceStatus.textContent = `❌ Heard: "${speechResult}". Say exact code: ${requiredCode}`;
                     voiceStatus.style.color = "#e53e3e";
                 }
             };
 
             recognition.onerror = () => {
-                voiceStatus.textContent = "Voice recognition error. Please try again.";
+                voiceStatus.textContent = "Voice recognition error. Try again.";
                 voiceStatus.style.color = "#e53e3e";
             };
 
@@ -132,25 +150,24 @@
                 return;
             }
             if (!voiceRegistered) {
-                alert("Please record and verify your voice passcode before registering!");
+                alert("Please complete voice dynamic code verification!");
                 return;
             }
 
             const rollNum = document.getElementById('roll_num').value;
             const name = document.getElementById('name').value;
             const className = document.getElementById('class_name').value;
+            const parentEmail = document.getElementById('parent_email').value;
 
             let formData = new FormData();
             formData.append('roll_num', rollNum);
             formData.append('name', name);
             formData.append('class_name', className);
+            formData.append('parent_email', parentEmail);
             formData.append('face_image', capturedBlob, 'snapshot.jpg');
             formData.append('voice_verified', voiceRegistered ? 'true' : 'false');
 
-            fetch('/register', {
-                method: 'POST',
-                body: formData
-            })
+            fetch('/register', { method: 'POST', body: formData })
             .then(res => res.json())
             .then(data => {
                 let msgDiv = document.getElementById('responseMessage');
@@ -159,9 +176,6 @@
                 if(data.status === 'success') {
                     setTimeout(() => { window.location.href = "{{ url_for('index') }}"; }, 2000);
                 }
-            })
-            .catch(err => {
-                alert("An error occurred during registration.");
             });
         });
     </script>
