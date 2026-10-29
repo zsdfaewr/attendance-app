@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>New Student Registration | Dual-Biometric System</title>
+    <title>New Student Registration | Secure Biometrics</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); min-height: 100vh; margin: 0; display: flex; align-items: center; justify-content: center; padding: 20px; color: #1a202c; }
@@ -19,7 +19,7 @@
         .btn:hover { background-color: #2c7a7b; }
         .btn-secondary { background-color: #4a5568; }
         .btn-secondary:hover { background-color: #2d3748; }
-        .dynamic-badge { background: #ebf8ff; color: #2b6cb0; padding: 8px 12px; border-radius: 6px; font-weight: 700; font-size: 1.1rem; display: inline-block; margin-bottom: 10px; letter-spacing: 2px; }
+        .dynamic-badge { background: #ebf8ff; color: #2b6cb0; padding: 8px 12px; border-radius: 6px; font-weight: 700; font-size: 1.2rem; display: inline-block; margin-bottom: 10px; letter-spacing: 3px; }
         .status-text { font-size: 0.85rem; font-weight: 600; margin-top: 8px; color: #e53e3e; }
         .back-link { display: block; margin-top: 20px; color: #718096; text-decoration: none; font-size: 0.9rem; }
         .back-link:hover { color: #4a5568; text-decoration: underline; }
@@ -27,8 +27,8 @@
 </head>
 <body>
     <div class="card">
-        <h1>📝 New Student Registration</h1>
-        <p class="subtitle">Dual-Biometric Profile Setup & Parent Alerts</p>
+        <h1>📝 Student Registration</h1>
+        <p class="subtitle">Alpha Fusion Anti-Proxy Enrollment</p>
         <form id="registerForm">
             <div class="form-group">
                 <label for="roll_num">Roll Number</label>
@@ -43,29 +43,29 @@
                 <input type="text" id="class_name" name="class_name" required placeholder="e.g. MCA-III" class="form-control">
             </div>
             <div class="form-group">
-                <label for="parent_email">Parent / Guardian Email (For Absent Alerts)</label>
+                <label for="parent_email">Parent Email (For Absent Alerts)</label>
                 <input type="email" id="parent_email" name="parent_email" required placeholder="parent@example.com" class="form-control">
             </div>
 
             <div class="form-group">
-                <label>Face Biometric Capture</label>
+                <label>Step 1: Face Liveness Capture</label>
                 <div class="webcam-container">
                     <video id="video" autoplay playsinline></video>
                 </div>
-                <button type="button" id="captureBtn" class="btn btn-secondary">📸 Capture Face Snapshot</button>
+                <button type="button" id="captureBtn" class="btn btn-secondary">📸 Capture Live Face</button>
                 <div id="snapshotPreview" class="status-text">Face capture pending...</div>
             </div>
 
             <div class="form-group">
-                <label>Voice Liveness (Dynamic Code)</label>
+                <label>Step 2: Dynamic Voice Passcode (Anti-Proxy)</label>
                 <div style="text-align: center;">
                     <span id="dynamicCodeBox" class="dynamic-badge">Loading...</span>
                 </div>
-                <button type="button" id="speakBtn" class="btn btn-secondary">🎙️ Read Dynamic Code</button>
+                <button type="button" id="speakBtn" class="btn btn-secondary">🎙️ Speak Code Clearly</button>
                 <div id="voiceStatus" class="status-text">Voice verification pending...</div>
             </div>
 
-            <button type="submit" class="btn">Complete Registration</button>
+            <button type="submit" class="btn">Complete Secure Registration</button>
         </form>
         <div id="responseMessage" style="margin-top: 15px; font-weight: 600; font-size: 0.9rem;"></div>
         <a href="{{ url_for('index') }}" class="back-link">← Back to Home</a>
@@ -93,7 +93,7 @@
                 dynamicCodeBox.textContent = requiredCode;
             });
 
-        navigator.mediaDevices.getUserMedia({ video: true })
+        navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 640 }, height: { ideal: 480 } } })
             .then(stream => { video.srcObject = stream; })
             .catch(err => { alert("Webcam access denied or unavailable."); });
 
@@ -105,7 +105,7 @@
             canvas.toBlob((blob) => {
                 capturedBlob = blob;
                 faceCaptured = true;
-                snapshotPreview.textContent = "✓ Face captured successfully!";
+                snapshotPreview.textContent = "✓ Live face captured securely!";
                 snapshotPreview.style.color = "#319795";
             }, 'image/jpeg', 0.85);
         });
@@ -113,7 +113,7 @@
         speakBtn.addEventListener('click', () => {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) {
-                alert("Speech recognition not supported in this browser. Use Chrome.");
+                alert("Speech recognition not supported in this browser. Please use Google Chrome.");
                 return;
             }
             const recognition = new SpeechRecognition();
@@ -125,16 +125,16 @@
                 let speechResult = event.results[0][0].transcript.toLowerCase().trim();
                 if (speechResult.includes(requiredCode)) {
                     voiceRegistered = true;
-                    voiceStatus.textContent = "✓ Voice dynamic code verified!";
+                    voiceStatus.textContent = "✓ Voice liveness verified!";
                     voiceStatus.style.color = "#319795";
                 } else {
-                    voiceStatus.textContent = `❌ Heard: "${speechResult}". Say exact code: ${requiredCode}`;
+                    voiceStatus.textContent = `❌ Heard: "${speechResult}". Speak exact code: ${requiredCode}`;
                     voiceStatus.style.color = "#e53e3e";
                 }
             };
 
             recognition.onerror = () => {
-                voiceStatus.textContent = "Voice recognition error. Try again.";
+                voiceStatus.textContent = "Voice recognition timeout. Try again.";
                 voiceStatus.style.color = "#e53e3e";
             };
 
@@ -144,11 +144,11 @@
         registerForm.addEventListener('submit', (e) => {
             e.preventDefault();
             if (!faceCaptured || !capturedBlob) {
-                alert("Please capture your face snapshot before registering!");
+                alert("Please capture your live face snapshot first!");
                 return;
             }
             if (!voiceRegistered) {
-                alert("Please complete voice dynamic code verification!");
+                alert("Please complete the voice dynamic code verification!");
                 return;
             }
 
