@@ -34,8 +34,6 @@
                 </form>
             </div>
         </div>
-
-        <!-- Chart.js Visual Analytics Section -->
         <div class="charts-container">
             <div class="chart-box">
                 <h3>Attendance Ratio</h3>
@@ -46,8 +44,6 @@
                 <canvas id="classChart"></canvas>
             </div>
         </div>
-
-        <!-- Student Management Section -->
         <div class="section">
             <h3>👥 Registered Students & Management</h3>
             <table>
@@ -79,8 +75,6 @@
                 </tbody>
             </table>
         </div>
-
-        <!-- Attendance History Section -->
         <div class="section">
             <h3>📅 Attendance Logs</h3>
             <table>
@@ -89,6 +83,7 @@
                         <th>Roll No</th>
                         <th>Class</th>
                         <th>Status</th>
+                        <th>Fusion Score</th>
                         <th>Date</th>
                         <th>Time Verified</th>
                     </tr>
@@ -106,37 +101,31 @@
                                     <span class="badge-absent">Absent</span>
                                 {% endif %}
                             </td>
+                            <td>{{ (a['fusion_score'] * 100) if a['fusion_score'] else 0 }}%</td>
                             <td>{{ a['date'] }}</td>
                             <td>{{ a['time_verified'] or 'N/A' }}</td>
                         </tr>
                         {% endfor %}
                     {% else %}
-                        <tr><td colspan="5" style="text-align: center; color: #a0aec0;">No attendance history available.</td></tr>
+                        <tr><td colspan="6" style="text-align: center; color: #a0aec0;">No attendance history available.</td></tr>
                     {% endif %}
                 </tbody>
             </table>
         </div>
     </div>
-
     <script>
-        // Dynamic Chart.js Analytics initialization reading table attributes
         document.addEventListener("DOMContentLoaded", function() {
             const rows = document.querySelectorAll("tbody tr[data-status]");
             let presentCount = 0;
             let absentCount = 0;
             let classCounts = {};
-
             rows.forEach(row => {
                 const status = row.getAttribute("data-status");
                 const cls = row.getAttribute("data-class") || "General";
-
                 if (status === "Present") presentCount++;
                 if (status === "Absent") absentCount++;
-
                 classCounts[cls] = (classCounts[cls] || 0) + 1;
             });
-
-            // Status Doughnut Chart
             const ctxStatus = document.getElementById('statusChart').getContext('2d');
             new Chart(ctxStatus, {
                 type: 'doughnut',
@@ -148,8 +137,6 @@
                     }]
                 }
             });
-
-            // Class Bar Chart
             const ctxClass = document.getElementById('classChart').getContext('2d');
             new Chart(ctxClass, {
                 type: 'bar',

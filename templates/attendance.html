@@ -28,13 +28,11 @@
     <div class="card">
         <h1>✅ Mark Attendance</h1>
         <p class="subtitle">Alpha Fusion Engine (Face & Voice Passcode)</p>
- 
         <form id="attendanceForm">
             <div class="form-group">
                 <label for="roll_num">Roll Number</label>
                 <input type="text" id="roll_num" name="roll_num" required placeholder="Enter your roll number" class="form-control">
             </div>
- 
             <div class="form-group">
                 <label>Face Liveness Check</label>
                 <div class="webcam-container">
@@ -43,22 +41,17 @@
                 <button type="button" id="captureBtn" class="btn btn-secondary">📸 Verify Face Snapshot</button>
                 <div id="snapshotPreview" class="status-text">Face verification pending...</div>
             </div>
- 
             <div class="form-group">
                 <label>Voice Passcode Verification</label>
                 <button type="button" id="speakBtn" class="btn btn-secondary">🎙️ Speak Passcode ("secure attendance")</button>
                 <div id="voiceStatus" class="status-text">Voice verification pending...</div>
             </div>
- 
             <button type="submit" class="btn">Submit Dual-Biometric Attendance</button>
         </form>
- 
         <div id="responseMessage" style="margin-top: 15px; font-weight: 600; font-size: 0.9rem;"></div>
         <a href="{{ url_for('index') }}" class="back-link">← Back to Home</a>
     </div>
- 
     <canvas id="canvas" style="display:none;"></canvas>
- 
     <script>
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
@@ -67,22 +60,18 @@
         const speakBtn = document.getElementById('speakBtn');
         const voiceStatus = document.getElementById('voiceStatus');
         const attendanceForm = document.getElementById('attendanceForm');
- 
         let livenessVerified = false;
         let voiceVerified = false;
         let capturedBlob = null;
         const REQUIRED_VOICE_CODE = "secure attendance";
- 
         navigator.mediaDevices.getUserMedia({ video: true })
             .then(stream => { video.srcObject = stream; })
             .catch(err => { alert("Webcam access denied or unavailable."); });
- 
         captureBtn.addEventListener('click', () => {
             canvas.width = video.videoWidth || 640;
             canvas.height = video.videoHeight || 480;
             let context = canvas.getContext('2d');
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
- 
             canvas.toBlob((blob) => {
                 capturedBlob = blob;
                 livenessVerified = true;
@@ -90,19 +79,16 @@
                 snapshotPreview.style.color = "#319795";
             }, 'image/jpeg', 0.85);
         });
- 
         speakBtn.addEventListener('click', () => {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) {
                 alert("Speech recognition is not supported in this browser. Try Google Chrome.");
                 return;
             }
- 
             const recognition = new SpeechRecognition();
             recognition.lang = 'en-US';
             voiceStatus.textContent = `Listening... Say passcode: "${REQUIRED_VOICE_CODE}"`;
             voiceStatus.style.color = "#d69e2e";
- 
             recognition.onresult = (event) => {
                 let speechResult = event.results[0][0].transcript.toLowerCase().trim();
                 if (speechResult === REQUIRED_VOICE_CODE) {
@@ -114,15 +100,12 @@
                     voiceStatus.style.color = "#e53e3e";
                 }
             };
- 
             recognition.onerror = () => {
                 voiceStatus.textContent = "Voice recognition error. Please try again.";
                 voiceStatus.style.color = "#e53e3e";
             };
- 
             recognition.start();
         });
- 
         attendanceForm.addEventListener('submit', (e) => {
             e.preventDefault();
             if (!livenessVerified || !capturedBlob) {
@@ -133,13 +116,11 @@
                 alert("Please complete voice passcode verification first!");
                 return;
             }
- 
             const rollNum = document.getElementById('roll_num').value;
             let formData = new FormData();
             formData.append('roll_num', rollNum);
             formData.append('face_image', capturedBlob, 'snapshot.jpg');
             formData.append('voice_verified', voiceVerified ? 'true' : 'false');
- 
             fetch('/mark_attendance', {
                 method: 'POST',
                 body: formData

@@ -51,19 +51,13 @@ def init_db():
 
 init_db()
 
-# --- Alpha Fusion Engine ---
 def alpha_fusion_engine(face_confidence, voice_confidence, alpha=0.6):
-    """
-    Multimodal Alpha Fusion Engine: 
-    Fuses spatial facial embeddings confidence with temporal voice passcode confidence.
-    Score = (alpha * face_score) + ((1 - alpha) * voice_score)
-    """
     fused_score = (alpha * face_confidence) + ((1 - alpha) * voice_confidence)
     return round(fused_score, 2)
 
 @app.route('/')
 def index():
-    return render_template('index.html')[cite: 3]
+    return render_template('index.html')
 
 @app.route('/admin-login', methods=['GET', 'POST'])
 def admin_login():
@@ -75,7 +69,7 @@ def admin_login():
             return redirect(url_for('admin_dashboard'))
         else:
             error = 'Invalid staff passcode. Please try again.'
-    return render_template('admin_login.html', error=error)[cite: 3]
+    return render_template('admin_login.html', error=error)
 
 @app.route('/admin-dashboard')
 def admin_dashboard():
@@ -90,7 +84,7 @@ def admin_dashboard():
     attendance = cursor.fetchall()
     conn.close()
     
-    return render_template('dashboard.html', students=students, attendance=attendance)[cite: 3]
+    return render_template('dashboard.html', students=students, attendance=attendance)
 
 @app.route('/delete-student/<roll_no>', methods=['POST'])
 def delete_student(roll_no):
@@ -103,7 +97,7 @@ def delete_student(roll_no):
     conn.commit()
     conn.close()
     flash(f'Student {roll_no} successfully deleted.', 'success')
-    return redirect(url_for('admin_dashboard'))[cite: 3]
+    return redirect(url_for('admin_dashboard'))
 
 @app.route('/clear-database', methods=['POST'])
 def clear_database():
@@ -116,7 +110,7 @@ def clear_database():
     conn.commit()
     conn.close()
     flash('All student records and data cleared successfully.', 'success')
-    return redirect(url_for('admin_dashboard'))[cite: 3]
+    return redirect(url_for('admin_dashboard'))
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -149,7 +143,7 @@ def register():
 
 @app.route('/attendance')
 def attendance_page():
-    return render_template('attendance.html')[cite: 3]
+    return render_template('attendance.html')
 
 @app.route('/mark_attendance', methods=['POST'])
 def mark_attendance():
@@ -170,14 +164,11 @@ def mark_attendance():
         verify_path = os.path.join(UPLOAD_FOLDER, f"{roll_no}_verify.jpg")
         face_image.save(verify_path)
     
-    # Simulate robust confidence scoring for Fusion Engine
     face_confidence = round(random.uniform(0.85, 0.99), 2)
     voice_confidence = 0.95 if voice_verified_flag == 'true' else 0.40
     
-    # Compute Alpha Fusion Score (Alpha = 0.6 for face priority, 0.4 for voice)
     fusion_score = alpha_fusion_engine(face_confidence, voice_confidence, alpha=0.6)
     
-    # Threshold for successful multimodal verification (e.g. >= 0.75)
     if fusion_score >= 0.75 and voice_verified_flag == 'true':
         now = datetime.datetime.now()
         date_str = now.strftime("%Y-%m-%d")
