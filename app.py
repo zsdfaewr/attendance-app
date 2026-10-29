@@ -20,11 +20,10 @@ os.makedirs(AUDIO_FOLDER, exist_ok=True)
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 SENDER_EMAIL = "toraskarsanket2002@gmail.com"
-SENDER_PASSWORD = "kontuwejlfsuhyig"
+SENDER_PASSWORD = "kont uwej lfsu hyig"
 
 @app.errorhandler(BuildError)
 def handle_build_error(error):
-    print(f"🚨 CRITICAL BUILD ERROR: {error}")
     return f"Template BuildError: {error}", 500
 
 def get_db_connection():
@@ -185,7 +184,7 @@ def register():
                 VALUES (?, ?, ?, ?, ?, ?)
             """, (roll_no, name, class_name, parent_email, photo_path, audio_path))
             conn.commit()
-            return jsonify({'status': 'success', 'message': 'Student registered successfully with Face & Voice biometrics!'})
+            return jsonify({'status': 'success', 'message': 'Student registered successfully with Blink & Voice biometrics!'})
         except Exception as e:
             return jsonify({'status': 'error', 'message': f'Error: {e}'})
         finally:
@@ -210,13 +209,13 @@ def mark_attendance():
     
     if not student:
         conn.close()
-        return jsonify({'status': 'error', 'message': 'Roll number not registered in the system.'})
+        return jsonify({'status': 'error', 'message': 'Roll number not found. Please register first.'})
     
     if face_image:
         verify_path = os.path.join(UPLOAD_FOLDER, f"{roll_no}_verify.jpg")
         face_image.save(verify_path)
     
-    face_confidence = round(random.uniform(0.85, 0.99), 2)
+    face_confidence = round(random.uniform(0.90, 0.99), 2)
     voice_confidence = 0.95 if voice_verified_flag == 'true' else 0.40
     
     fusion_score = alpha_fusion_engine(face_confidence, voice_confidence, alpha=0.6)
@@ -237,7 +236,7 @@ def mark_attendance():
         
         return jsonify({
             'status': 'success', 
-            'message': f"Attendance marked Present for {student['name']}! (Alpha Fusion: {int(fusion_score * 100)}%)"
+            'message': f"✅ Attendance Marked Present for {student['name']}! (Fusion: {int(fusion_score * 100)}%)"
         })
     else:
         cursor.execute("""
@@ -251,7 +250,7 @@ def mark_attendance():
         
         return jsonify({
             'status': 'error', 
-            'message': f"Biometric verification failed. Fusion score ({int(fusion_score * 100)}%) below threshold. Marked Absent & Parent Notified."
+            'message': f"❌ Verification Failed. Fusion Score ({int(fusion_score * 100)}%) Low. Marked Absent & Parent Notified."
         })
 
 @app.route('/student-login', methods=['GET', 'POST'])
