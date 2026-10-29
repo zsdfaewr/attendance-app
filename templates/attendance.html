@@ -138,12 +138,19 @@
             formData.append('face_image', capturedBlob, 'snapshot.jpg');
             formData.append('voice_verified', voiceVerified ? 'true' : 'false');
 
+            let msgDiv = document.getElementById('responseMessage');
+            msgDiv.textContent = "Processing attendance and verifying fusion score...";
+            msgDiv.style.color = "#d69e2e";
+
             fetch('/mark_attendance', { method: 'POST', body: formData })
             .then(res => res.json())
             .then(data => {
-                let msgDiv = document.getElementById('responseMessage');
                 msgDiv.textContent = data.message;
                 msgDiv.style.color = data.status === 'success' ? '#319795' : '#e53e3e';
+            })
+            .catch(err => {
+                msgDiv.textContent = "Error connecting to server. Please try again.";
+                msgDiv.style.color = "#e53e3e";
             });
         });
     </script>

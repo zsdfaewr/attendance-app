@@ -35,7 +35,6 @@ def get_db_connection():
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
-    # Clean drop and recreate to prevent missing column errors
     cursor.execute('DROP TABLE IF EXISTS students')
     cursor.execute('''
         CREATE TABLE students (
@@ -64,7 +63,6 @@ def init_db():
 init_db()
 
 def send_parent_email(parent_email, student_name, status, date):
-    """Sends email notification to parents regarding student attendance."""
     if not parent_email:
         return
     try:
@@ -239,7 +237,7 @@ def mark_attendance():
         
         return jsonify({
             'status': 'success', 
-            'message': f"Attendance marked Present for {student['name']}! (Alpha Fusion: {fusion_score * 100}%)"
+            'message': f"Attendance marked Present for {student['name']}! (Alpha Fusion: {int(fusion_score * 100)}%)"
         })
     else:
         cursor.execute("""
@@ -253,7 +251,7 @@ def mark_attendance():
         
         return jsonify({
             'status': 'error', 
-            'message': f"Biometric verification failed. Fusion score ({fusion_score * 100}%) below threshold. Marked Absent & Parent Notified."
+            'message': f"Biometric verification failed. Fusion score ({int(fusion_score * 100)}%) below threshold. Marked Absent & Parent Notified."
         })
 
 @app.route('/student-login', methods=['GET', 'POST'])
