@@ -22,13 +22,12 @@
         .dynamic-badge { background: #ebf8ff; color: #2b6cb0; padding: 8px 12px; border-radius: 6px; font-weight: 700; font-size: 1.2rem; display: inline-block; margin-bottom: 10px; letter-spacing: 3px; }
         .status-text { font-size: 0.85rem; font-weight: 600; margin-top: 8px; color: #e53e3e; }
         .back-link { display: block; margin-top: 20px; color: #718096; text-decoration: none; font-size: 0.9rem; }
-        .back-link:hover { color: #4a5568; text-decoration: underline; }
     </style>
 </head>
 <body>
     <div class="card">
         <h1>📝 Student Registration</h1>
-        <p class="subtitle">Alpha Fusion Liveness & Anti-Proxy</p>
+        <p class="subtitle">Alpha Fusion Liveness & Department Enrollment</p>
         <form id="registerForm">
             <div class="form-group">
                 <label for="roll_num">Roll Number</label>
@@ -37,6 +36,15 @@
             <div class="form-group">
                 <label for="name">Full Name</label>
                 <input type="text" id="name" name="name" required placeholder="Enter student full name" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="department">Department</label>
+                <select id="department" name="department" required class="form-control">
+                    <option value="MCA">MCA (Master of Computer Applications)</option>
+                    <option value="BCA">BCA (Bachelor of Computer Applications)</option>
+                    <option value="BSc IT">BSc IT</option>
+                    <option value="BTech CS">BTech Computer Science</option>
+                </select>
             </div>
             <div class="form-group">
                 <label for="class_name">Class / Division</label>
@@ -154,12 +162,14 @@
 
             const rollNum = document.getElementById('roll_num').value;
             const name = document.getElementById('name').value;
+            const department = document.getElementById('department').value;
             const className = document.getElementById('class_name').value;
             const parentEmail = document.getElementById('parent_email').value;
 
             let formData = new FormData();
             formData.append('roll_num', rollNum);
             formData.append('name', name);
+            formData.append('department', department);
             formData.append('class_name', className);
             formData.append('parent_email', parentEmail);
             formData.append('face_image', capturedBlob, 'snapshot.jpg');

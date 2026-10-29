@@ -7,10 +7,18 @@ import csv
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, make_response
-from werkzeug.routing import BuildError
+from werkzeug.routing import BuildHeaderError, BuildError
+
+# Optional PDF generation import via ReportLab
+try:
+    from reportlab.lib.pagesizes import letter
+    from reportlab.pdfgen import canvas
+    PDF_SUPPORT = True
+except ImportError:
+    PDF_SUPPORT = False
 
 app = Flask(__name__)
-app.secret_key = 'smart_attendance_master_secret_key'
+app.secret_key = 'smart_attendance_enterprise_master_key'
 
 UPLOAD_FOLDER = 'static/uploads'
 AUDIO_FOLDER = 'static/audio'
@@ -38,6 +46,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS students (
             roll_no TEXT PRIMARY KEY,
             name TEXT NOT NULL,
+            department TEXT NOT NULL,
             class_name TEXT NOT NULL,
             parent_email TEXT,
             photo_path TEXT,
@@ -48,6 +57,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS attendance_history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             roll_no TEXT,
+            department TEXT,
             class_name TEXT,
             status TEXT,
             fusion_score REAL,
@@ -73,7 +83,7 @@ def send_parent_email(parent_email, student_name, status, date):
         body = f"""
         Dear Parent,
         
-        This is an automated notification from the Secure Biometric Attendance System.
+        This is an automated notification from the Secure Dual-Biometric Attendance System.
         
         Student Name: {student_name}
         Status for {date}: {status}
@@ -81,7 +91,7 @@ def send_parent_email(parent_email, student_name, status, date):
         If you have any queries, please contact the institution administration.
         
         Best regards,
-        Smart Attendance System
+        Smart Attendance System Administration
         """
         msg.attach(MIMEText(body, 'plain'))
 
@@ -124,16 +134,26 @@ def admin_login():
 def admin_dashboard():
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
+    
+    dept_filter = request.args.get('department', 'All')
+    
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM students")
-    students = cursor.fetchall()
     
-    cursor.execute("SELECT * FROM attendance_history ORDER BY date DESC")
-    attendance = cursor.fetchall()
+    if dept_filter and dept_filter != 'All':
+        cursor.execute("SELECT * FROM students WHERE department = ?", (dept_filter,))
+        students = cursor.fetchall()
+        cursor.execute("SELECT * FROM attendance_history WHERE department = ? ORDER BY date DESC", (dept_filter,))
+        attendance = cursor.fetchall()
+    else:
+        cursor.execute("SELECT * FROM students")
+        students = cursor.fetchall()
+        cursor.execute("SELECT * FROM attendance_history ORDER BY date DESC")
+        attendance = cursor.fetchall()
+        
     conn.close()
     
-    return render_template('dashboard.html', students=students, attendance=attendance)
+    return render_template('dashboard.html', students=students, attendance=attendance, selected_dept=dept_filter)
 
 @app.route('/export-attendance-csv')
 def export_attendance_csv():
@@ -142,24 +162,78 @@ def export_attendance_csv():
     
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT roll_no, class_name, status, fusion_score, date, time_verified, location FROM attendance_history ORDER BY date DESC")
+    cursor.execute("SELECT roll_no, department, class_name, status, fusion_score, date, time_verified, location FROM attendance_history ORDER BY date DESC")
     records = cursor.fetchall()
     conn.close()
     
     output = []
-    output.append(['Roll No', 'Class', 'Status', 'Fusion Score (%)', 'Date', 'Time Verified', 'GPS Coordinates'])
+    output.append(['Roll No', 'Department', 'Class', 'Status', 'Fusion Score (%)', 'Date', 'Time Verified', 'GPS Coordinates'])
     
     for row in records:
         score_percent = int(row['fusion_score'] * 100) if row['fusion_score'] else 0
         loc = row['location'] if row['location'] else 'Campus Verified'
-        output.append([row['roll_no'], row['class_name'], row['status'], f"{score_percent}%", row['date'], row['time_verified'], loc])
+        output.append([row['roll_no'], row['department'], row['class_name'], row['status'], f"{score_percent}%", row['date'], row['time_verified'], loc])
     
     csv_data = "\n".join([",".join([f'"{str(item)}"' for item in line]) for line in output])
     
     response = make_response(csv_data)
-    response.headers["Content-Disposition"] = "attachment; filename=official_attendance_report.csv"
+    response.headers["Content-Disposition"] = "attachment; filename=institutional_attendance_report.csv"
     response.headers["Content-Type"] = "text/csv"
     return response
+
+@app.route('/export-attendance-pdf')
+def export_attendance_pdf():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    if not PDF_SUPPORT:
+        flash("ReportLab PDF library is not installed. Defaulting to CSV export.", "danger")
+        return redirect(url_for('export_attendance_csv'))
+        
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT roll_no, department, class_name, status, fusion_score, date, time_verified FROM attendance_history ORDER BY date DESC")
+    records = cursor.fetchall()
+    conn.close()
+    
+    pdf_path = "static/attendance_report.pdf"
+    c = canvas.Canvas(pdf_path, pagesize=letter)
+    width, height = letter
+    
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(50, height - 50, "Institutional Biometric Attendance Report")
+    
+    c.setFont("Helvetica", 10)
+    c.drawString(50, height - 70, f"Generated On: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    c.line(50, height - 80, width - 50, height - 80)
+    
+    y = height - 110
+    c.setFont("Helvetica-Bold", 9)
+    c.drawString(50, y, "Roll No")
+    c.drawString(120, y, "Department")
+    c.drawString(220, y, "Class")
+    c.drawString(300, y, "Status")
+    c.drawString(370, y, "Fusion Score")
+    c.drawString(450, y, "Date & Time")
+    
+    y -= 20
+    c.setFont("Helvetica", 9)
+    for row in records:
+        if y < 50:
+            c.showPage()
+            y = height - 50
+        score_pct = f"{int(row['fusion_score'] * 100)}%" if row['fusion_score'] else "0%"
+        c.drawString(50, y, str(row['roll_no']))
+        c.drawString(120, y, str(row['department']))
+        c.drawString(220, y, str(row['class_name']))
+        c.drawString(300, y, str(row['status']))
+        c.drawString(370, y, score_pct)
+        c.drawString(450, y, f"{row['date']} {row['time_verified']}")
+        y -= 18
+        
+    c.save()
+    
+    return redirect(url_for('static', filename='attendance_report.pdf'))
 
 @app.route('/send-manual-email/<roll_no>', methods=['POST'])
 def send_manual_email(roll_no):
@@ -215,6 +289,7 @@ def register():
     if request.method == 'POST':
         roll_no = request.form.get('roll_num')
         name = request.form.get('name')
+        department = request.form.get('department')
         class_name = request.form.get('class_name')
         parent_email = request.form.get('parent_email')
         face_image = request.files.get('face_image')
@@ -231,11 +306,11 @@ def register():
         cursor = conn.cursor()
         try:
             cursor.execute("""
-                INSERT OR REPLACE INTO students (roll_no, name, class_name, parent_email, photo_path, audio_path) 
-                VALUES (?, ?, ?, ?, ?, ?)
-            """, (roll_no, name, class_name, parent_email, photo_path, audio_path))
+                INSERT OR REPLACE INTO students (roll_no, name, department, class_name, parent_email, photo_path, audio_path) 
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (roll_no, name, department, class_name, parent_email, photo_path, audio_path))
             conn.commit()
-            return jsonify({'status': 'success', 'message': 'Student registered successfully with Verified Biometrics!'})
+            return jsonify({'status': 'success', 'message': 'Student registered successfully with Multi-Modal Biometrics!'})
         except Exception as e:
             return jsonify({'status': 'error', 'message': f'Error: {e}'})
         finally:
@@ -278,9 +353,9 @@ def mark_attendance():
     
     if fusion_score >= 0.75 and voice_verified_flag == 'true':
         cursor.execute("""
-            INSERT INTO attendance_history (roll_no, class_name, status, fusion_score, date, time_verified, location)
-            VALUES (?, ?, 'Present', ?, ?, ?, ?)
-        """, (roll_no, student['class_name'], fusion_score, date_str, time_str, user_location))
+            INSERT INTO attendance_history (roll_no, department, class_name, status, fusion_score, date, time_verified, location)
+            VALUES (?, ?, ?, 'Present', ?, ?, ?, ?)
+        """, (roll_no, student['department'], student['class_name'], fusion_score, date_str, time_str, user_location))
         conn.commit()
         conn.close()
         
@@ -290,9 +365,9 @@ def mark_attendance():
         })
     else:
         cursor.execute("""
-            INSERT INTO attendance_history (roll_no, class_name, status, fusion_score, date, time_verified, location)
-            VALUES (?, ?, 'Absent', ?, ?, ?, ?)
-        """, (roll_no, student['class_name'], fusion_score, date_str, time_str, user_location))
+            INSERT INTO attendance_history (roll_no, department, class_name, status, fusion_score, date, time_verified, location)
+            VALUES (?, ?, ?, 'Absent', ?, ?, ?, ?)
+        """, (roll_no, student['department'], student['class_name'], fusion_score, date_str, time_str, user_location))
         conn.commit()
         conn.close()
         
@@ -309,7 +384,7 @@ def student_login():
         roll_no = request.form.get('roll_no')
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT roll_no, name, class_name, photo_path FROM students WHERE roll_no = ?", (roll_no,))
+        cursor.execute("SELECT roll_no, name, department, class_name, photo_path FROM students WHERE roll_no = ?", (roll_no,))
         student = cursor.fetchone()
         conn.close()
         
@@ -332,7 +407,7 @@ def student_dashboard():
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    cursor.execute("SELECT roll_no, name, class_name, parent_email, photo_path FROM students WHERE roll_no = ?", (roll_no,))
+    cursor.execute("SELECT roll_no, name, department, class_name, parent_email, photo_path FROM students WHERE roll_no = ?", (roll_no,))
     student = cursor.fetchone()
     
     cursor.execute("SELECT date, status, fusion_score, time_verified, location FROM attendance_history WHERE roll_no = ? ORDER BY date DESC", (roll_no,))
