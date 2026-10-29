@@ -119,21 +119,24 @@ def register():
         name = request.form.get('name')
         class_name = request.form.get('class_name')
         face_image = request.files.get('face_image')
+        voice_verified_flag = request.form.get('voice_verified', 'false')
         
         photo_path = 'static/default.jpg'
         if face_image:
             photo_path = os.path.join(UPLOAD_FOLDER, f"{roll_no}_face.jpg")
             face_image.save(photo_path)
+            
+        audio_path = f"static/audio/{roll_no}_voice.wav" if voice_verified_flag == 'true' else None
         
         conn = get_db_connection()
         cursor = conn.cursor()
         try:
             cursor.execute("""
-                INSERT OR REPLACE INTO students (roll_no, name, class_name, photo_path) 
-                VALUES (?, ?, ?, ?)
-            """, (roll_no, name, class_name, photo_path))
+                INSERT OR REPLACE INTO students (roll_no, name, class_name, photo_path, audio_path) 
+                VALUES (?, ?, ?, ?, ?)
+            """, (roll_no, name, class_name, photo_path, audio_path))
             conn.commit()
-            return jsonify({'status': 'success', 'message': 'Student registered successfully with biometric face capture!'})
+            return jsonify({'status': 'success', 'message': 'Student registered successfully with Face & Voice biometrics!'})
         except Exception as e:
             return jsonify({'status': 'error', 'message': f'Error: {e}'})
         finally:

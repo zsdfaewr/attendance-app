@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>New Student Registration | Secure Biometric System</title>
+    <title>New Student Registration | Dual-Biometric System</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); min-height: 100vh; margin: 0; display: flex; align-items: center; justify-content: center; padding: 20px; color: #1a202c; }
@@ -27,7 +27,7 @@
 <body>
     <div class="card">
         <h1>📝 New Student Registration</h1>
-        <p class="subtitle">Register your details and capture face biometric</p>
+        <p class="subtitle">Dual-Biometric Profile Setup (Face & Voice)</p>
         <form id="registerForm">
             <div class="form-group">
                 <label for="roll_num">Roll Number</label>
@@ -41,6 +41,7 @@
                 <label for="class_name">Class / Division</label>
                 <input type="text" id="class_name" name="class_name" required placeholder="e.g. MCA-III" class="form-control">
             </div>
+
             <div class="form-group">
                 <label>Face Biometric Capture</label>
                 <div class="webcam-container">
@@ -49,7 +50,14 @@
                 <button type="button" id="captureBtn" class="btn btn-secondary">📸 Capture Face Snapshot</button>
                 <div id="snapshotPreview" class="status-text">Face capture pending...</div>
             </div>
-            <button type="submit" class="btn">Complete Registration</button>
+
+            <div class="form-group">
+                <label>Voice Passcode Registration</label>
+                <button type="button" id="speakBtn" class="btn btn-secondary">🎙️ Record Passcode ("secure attendance")</button>
+                <div id="voiceStatus" class="status-text">Voice passcode pending...</div>
+            </div>
+
+            <button type="submit" class="btn">Complete Dual-Biometric Registration</button>
         </form>
         <div id="responseMessage" style="margin-top: 15px; font-weight: 600; font-size: 0.9rem;"></div>
         <a href="{{ url_for('index') }}" class="back-link">← Back to Home</a>
@@ -60,12 +68,19 @@
         const canvas = document.getElementById('canvas');
         const captureBtn = document.getElementById('captureBtn');
         const snapshotPreview = document.getElementById('snapshotPreview');
+        const speakBtn = document.getElementById('speakBtn');
+        const voiceStatus = document.getElementById('voiceStatus');
         const registerForm = document.getElementById('registerForm');
+
         let faceCaptured = false;
+        let voiceRegistered = false;
         let capturedBlob = null;
+        const REQUIRED_VOICE_CODE = "secure attendance";
+
         navigator.mediaDevices.getUserMedia({ video: true })
             .then(stream => { video.srcObject = stream; })
             .catch(err => { alert("Webcam access denied or unavailable."); });
+
         captureBtn.addEventListener('click', () => {
             canvas.width = video.videoWidth || 640;
             canvas.height = video.videoHeight || 480;
@@ -78,20 +93,60 @@
                 snapshotPreview.style.color = "#319795";
             }, 'image/jpeg', 0.85);
         });
+
+        speakBtn.addEventListener('click', () => {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert("Speech recognition is not supported in this browser. Try Google Chrome.");
+                return;
+            }
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'en-US';
+            voiceStatus.textContent = `Listening... Speak passcode: "${REQUIRED_VOICE_CODE}"`;
+            voiceStatus.style.color = "#d69e2e";
+
+            recognition.onresult = (event) => {
+                let speechResult = event.results[0][0].transcript.toLowerCase().trim();
+                if (speechResult === REQUIRED_VOICE_CODE) {
+                    voiceRegistered = true;
+                    voiceStatus.textContent = "✓ Voice passcode registered successfully!";
+                    voiceStatus.style.color = "#319795";
+                } else {
+                    voiceStatus.textContent = `❌ Incorrect: "${speechResult}". Say exact passcode.`;
+                    voiceStatus.style.color = "#e53e3e";
+                }
+            };
+
+            recognition.onerror = () => {
+                voiceStatus.textContent = "Voice recognition error. Please try again.";
+                voiceStatus.style.color = "#e53e3e";
+            };
+
+            recognition.start();
+        });
+
         registerForm.addEventListener('submit', (e) => {
             e.preventDefault();
             if (!faceCaptured || !capturedBlob) {
                 alert("Please capture your face snapshot before registering!");
                 return;
             }
+            if (!voiceRegistered) {
+                alert("Please record and verify your voice passcode before registering!");
+                return;
+            }
+
             const rollNum = document.getElementById('roll_num').value;
             const name = document.getElementById('name').value;
             const className = document.getElementById('class_name').value;
+
             let formData = new FormData();
             formData.append('roll_num', rollNum);
             formData.append('name', name);
             formData.append('class_name', className);
             formData.append('face_image', capturedBlob, 'snapshot.jpg');
+            formData.append('voice_verified', voiceRegistered ? 'true' : 'false');
+
             fetch('/register', {
                 method: 'POST',
                 body: formData
