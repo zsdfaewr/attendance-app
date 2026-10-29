@@ -86,7 +86,6 @@
         let capturedBlob = null;
         let requiredCode = "";
 
-        // Fetch dynamic verification code on load
         fetch('/api/get-dynamic-code')
             .then(res => res.json())
             .then(data => {
@@ -124,7 +123,6 @@
 
             recognition.onresult = (event) => {
                 let speechResult = event.results[0][0].transcript.toLowerCase().trim();
-                // Check if spoken text contains or matches the dynamic code
                 if (speechResult.includes(requiredCode)) {
                     voiceRegistered = true;
                     voiceStatus.textContent = "✓ Voice dynamic code verified!";

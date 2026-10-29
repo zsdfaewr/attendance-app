@@ -16,11 +16,11 @@ AUDIO_FOLDER = 'static/audio'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(AUDIO_FOLDER, exist_ok=True)
 
-# Email configuration (Replace with your SMTP settings or App Password)
+# Email configuration (Update with your Gmail and 16-digit App Password)
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
-SENDER_EMAIL = "your_email@gmail.com"
-SENDER_PASSWORD = "your_email_app_password"
+SENDER_EMAIL = "toraskarsanket2002@gmail.com"
+SENDER_PASSWORD = "kont uwej lfsu hyig"
 
 @app.errorhandler(BuildError)
 def handle_build_error(error):
@@ -104,7 +104,6 @@ def index():
 
 @app.route('/api/get-dynamic-code')
 def get_dynamic_code():
-    """Generates a secure random 4-digit dynamic voice code for liveness."""
     code = str(random.randint(1000, 9999))
     return jsonify({'dynamic_code': code})
 
@@ -234,7 +233,6 @@ def mark_attendance():
         conn.commit()
         conn.close()
         
-        # Send Present Notification to Parent Email
         send_parent_email(student['parent_email'], student['name'], 'Present', date_str)
         
         return jsonify({
@@ -249,7 +247,6 @@ def mark_attendance():
         conn.commit()
         conn.close()
         
-        # Send Absent Notification to Parent Email
         send_parent_email(student['parent_email'], student['name'], 'Absent (Verification Failed)', date_str)
         
         return jsonify({
