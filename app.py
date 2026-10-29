@@ -18,8 +18,8 @@ os.makedirs(AUDIO_FOLDER, exist_ok=True)
 
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
-SENDER_EMAIL = "your_actual_email@gmail.com"
-SENDER_PASSWORD = "your_google_app_password"
+SENDER_EMAIL = "toraskarsanket2002@gmail.com"
+SENDER_PASSWORD = "kontuwejlfsuhyig"
 
 @app.errorhandler(BuildError)
 def handle_build_error(error):
