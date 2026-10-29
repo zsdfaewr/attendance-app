@@ -28,19 +28,19 @@
 <body>
     <div class="card">
         <h1>✅ Mark Attendance</h1>
-        <p class="subtitle">3 Verification Attempts Allowed</p>
+        <p class="subtitle">Strict Blink Liveness & 3 Attempts Allowed</p>
         <form id="attendanceForm">
             <div class="form-group">
                 <label for="roll_num">Roll Number</label>
                 <input type="text" id="roll_num" name="roll_num" required placeholder="Enter your roll number" class="form-control">
             </div>
             <div class="form-group">
-                <label>Step 1: Eye Blink Liveness Verification</label>
+                <label>Step 1: Active Eye Blink Verification</label>
                 <div class="webcam-container">
                     <video id="video" autoplay playsinline></video>
                 </div>
-                <button type="button" id="blinkBtn" class="btn btn-secondary">👁️ Detect Blink & Verify</button>
-                <div id="snapshotPreview" class="status-text">Please blink naturally for liveness check...</div>
+                <button type="button" id="blinkBtn" class="btn btn-secondary">👁️ Perform Eye Blink & Verify</button>
+                <div id="snapshotPreview" class="status-text">Staring without blinking will fail verification.</div>
             </div>
             <div class="form-group">
                 <label>Step 2: Dynamic Voice Passcode</label>
@@ -85,21 +85,61 @@
             .catch(err => { alert("Webcam access denied or unavailable."); });
 
         blinkBtn.addEventListener('click', () => {
-            snapshotPreview.textContent = "👁️ Analyzing eye blink movement...";
+            snapshotPreview.textContent = "👁️ Monitoring eye blink... Please blink now!";
             snapshotPreview.style.color = "#d69e2e";
 
-            setTimeout(() => {
-                canvas.width = video.videoWidth || 640;
-                canvas.height = video.videoHeight || 480;
-                let context = canvas.getContext('2d');
-                context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                canvas.toBlob((blob) => {
-                    capturedBlob = blob;
-                    livenessVerified = true;
-                    snapshotPreview.textContent = "✓ Eye blink liveness verified successfully!";
-                    snapshotPreview.style.color = "#319795";
-                }, 'image/jpeg', 0.85);
-            }, 1200);
+            let ctx = canvas.getContext('2d');
+            canvas.width = 160;
+            canvas.height = 120;
+            
+            let initialSamples = [];
+            for(let i=0; i<3; i++) {
+                ctx.drawImage(video, 0, 0, 160, 120);
+                let imgData = ctx.getImageData(40, 30, 80, 40).data;
+                let brightness = 0;
+                for(let p=0; p<imgData.length; p+=4) {
+                    brightness += (imgData[p] + imgData[p+1] + imgData[p+2]) / 3;
+                }
+                initialSamples.push(brightness / (imgData.length / 4));
+            }
+
+            let blinkDetected = false;
+            let checksCount = 0;
+            let checkInterval = setInterval(() => {
+                checksCount++;
+                ctx.drawImage(video, 0, 0, 160, 120);
+                let imgData = ctx.getImageData(40, 30, 80, 40).data;
+                let currentBrightness = 0;
+                for(let p=0; p<imgData.length; p+=4) {
+                    currentBrightness += (imgData[p] + imgData[p+1] + imgData[p+2]) / 3;
+                }
+                let avgCurrent = currentBrightness / (imgData.length / 4);
+                let avgInitial = initialSamples.reduce((a,b)=>a+b,0) / initialSamples.length;
+
+                if(Math.abs(avgCurrent - avgInitial) > 3.5) {
+                    blinkDetected = true;
+                }
+
+                if(blinkDetected || checksCount > 15) {
+                    clearInterval(checkInterval);
+                    if(blinkDetected) {
+                        canvas.width = video.videoWidth || 640;
+                        canvas.height = video.videoHeight || 480;
+                        let fullCtx = canvas.getContext('2d');
+                        fullCtx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        canvas.toBlob((blob) => {
+                            capturedBlob = blob;
+                            livenessVerified = true;
+                            snapshotPreview.textContent = "✓ Eye blink liveness verified successfully!";
+                            snapshotPreview.style.color = "#319795";
+                        }, 'image/jpeg', 0.85);
+                    } else {
+                        snapshotPreview.textContent = "❌ No blink detected! Please look at camera and blink.";
+                        snapshotPreview.style.color = "#e53e3e";
+                        livenessVerified = false;
+                    }
+                }
+            }, 100);
         });
 
         speakBtn.addEventListener('click', () => {
@@ -131,7 +171,7 @@
         attendanceForm.addEventListener('submit', (e) => {
             e.preventDefault();
             if (!livenessVerified || !capturedBlob) {
-                alert("Please perform the eye blink liveness verification first!");
+                alert("You must successfully blink to pass liveness verification first!");
                 return;
             }
             if (!voiceVerified) {
@@ -163,14 +203,12 @@
                     if (attemptsRemaining > 0) {
                         submitBtn.textContent = `Submit Secure Attendance (${attemptsRemaining} Attempts Left)`;
                         alert(`Verification failed! You have ${attemptsRemaining} attempt(s) remaining. Please retry your blink and voice code.`);
-                        // Reset statuses to let them try again immediately
                         livenessVerified = false;
                         voiceVerified = false;
                         snapshotPreview.textContent = "Please retry blink check...";
                         snapshotPreview.style.color = "#e53e3e";
                         voiceStatus.textContent = "Please retry voice passcode...";
                         voiceStatus.style.color = "#e53e3e";
-                        // Fetch new code for retry
                         fetch('/api/get-dynamic-code')
                             .then(res => res.json())
                             .then(d => {

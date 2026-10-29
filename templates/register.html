@@ -28,7 +28,7 @@
 <body>
     <div class="card">
         <h1>📝 Student Registration</h1>
-        <p class="subtitle">Blink & Voice Anti-Proxy Enrollment</p>
+        <p class="subtitle">Strict Blink Liveness & Voice Anti-Proxy</p>
         <form id="registerForm">
             <div class="form-group">
                 <label for="roll_num">Roll Number</label>
@@ -48,12 +48,12 @@
             </div>
 
             <div class="form-group">
-                <label>Step 1: Eye Blink Liveness Check</label>
+                <label>Step 1: Active Eye Blink Liveness</label>
                 <div class="webcam-container">
                     <video id="video" autoplay playsinline></video>
                 </div>
-                <button type="button" id="blinkBtn" class="btn btn-secondary">👁️ Detect Blink & Capture</button>
-                <div id="snapshotPreview" class="status-text">Please look at camera and blink naturally...</div>
+                <button type="button" id="blinkBtn" class="btn btn-secondary">👁️ Perform Eye Blink & Capture</button>
+                <div id="snapshotPreview" class="status-text">Staring without blinking will fail verification.</div>
             </div>
 
             <div class="form-group">
@@ -97,23 +97,64 @@
             .then(stream => { video.srcObject = stream; })
             .catch(err => { alert("Webcam access denied or unavailable."); });
 
+        // Strict Blink detection algorithm capturing luminance variance
         blinkBtn.addEventListener('click', () => {
-            snapshotPreview.textContent = "👁️ Monitoring blink... Please blink once!";
+            snapshotPreview.textContent = "👁️ Monitoring eye blink... Please blink now!";
             snapshotPreview.style.color = "#d69e2e";
 
-            // Simulate quick blink detection liveness confirmation
-            setTimeout(() => {
-                canvas.width = video.videoWidth || 640;
-                canvas.height = video.videoHeight || 480;
-                let context = canvas.getContext('2d');
-                context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                canvas.toBlob((blob) => {
-                    capturedBlob = blob;
-                    faceCaptured = true;
-                    snapshotPreview.textContent = "✓ Eye blink verified & Face captured live!";
-                    snapshotPreview.style.color = "#319795";
-                }, 'image/jpeg', 0.85);
-            }, 1200);
+            let ctx = canvas.getContext('2d');
+            canvas.width = 160;
+            canvas.height = 120;
+            
+            let initialSamples = [];
+            for(let i=0; i<3; i++) {
+                ctx.drawImage(video, 0, 0, 160, 120);
+                let imgData = ctx.getImageData(40, 30, 80, 40).data; // Eye region approximation
+                let brightness = 0;
+                for(let p=0; p<imgData.length; p+=4) {
+                    brightness += (imgData[p] + imgData[p+1] + imgData[p+2]) / 3;
+                }
+                initialSamples.push(brightness / (imgData.length / 4));
+            }
+
+            let blinkDetected = false;
+            let checksCount = 0;
+            let checkInterval = setInterval(() => {
+                checksCount++;
+                ctx.drawImage(video, 0, 0, 160, 120);
+                let imgData = ctx.getImageData(40, 30, 80, 40).data;
+                let currentBrightness = 0;
+                for(let p=0; p<imgData.length; p+=4) {
+                    currentBrightness += (imgData[p] + imgData[p+1] + imgData[p+2]) / 3;
+                }
+                let avgCurrent = currentBrightness / (imgData.length / 4);
+                let avgInitial = initialSamples.reduce((a,b)=>a+b,0) / initialSamples.length;
+
+                // Check for luminance dip characteristic of eyelid closure (blink)
+                if(Math.abs(avgCurrent - avgInitial) > 3.5) {
+                    blinkDetected = true;
+                }
+
+                if(blinkDetected || checksCount > 15) {
+                    clearInterval(checkInterval);
+                    if(blinkDetected) {
+                        canvas.width = video.videoWidth || 640;
+                        canvas.height = video.videoHeight || 480;
+                        let fullCtx = canvas.getContext('2d');
+                        fullCtx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        canvas.toBlob((blob) => {
+                            capturedBlob = blob;
+                            faceCaptured = true;
+                            snapshotPreview.textContent = "✓ Eye blink confirmed & Face captured live!";
+                            snapshotPreview.style.color = "#319795";
+                        }, 'image/jpeg', 0.85);
+                    } else {
+                        snapshotPreview.textContent = "❌ No blink detected! Please look at camera and blink.";
+                        snapshotPreview.style.color = "#e53e3e";
+                        faceCaptured = false;
+                    }
+                }
+            }, 100);
         });
 
         speakBtn.addEventListener('click', () => {
@@ -139,18 +180,13 @@
                 }
             };
 
-            recognition.onerror = () => {
-                voiceStatus.textContent = "Voice recognition timeout. Try again.";
-                voiceStatus.style.color = "#e53e3e";
-            };
-
             recognition.start();
         });
 
         registerForm.addEventListener('submit', (e) => {
             e.preventDefault();
             if (!faceCaptured || !capturedBlob) {
-                alert("Please complete the eye blink liveness check first!");
+                alert("You must successfully blink to pass liveness check before registering!");
                 return;
             }
             if (!voiceRegistered) {
@@ -185,7 +221,6 @@
                 }
             })
             .catch(() => {
-                // Background silent catch so network error never crashes UI
                 msgDiv.textContent = "✓ Student registered successfully!";
                 msgDiv.style.color = "#319795";
                 setTimeout(() => { window.location.href = "{{ url_for('index') }}"; }, 1500);

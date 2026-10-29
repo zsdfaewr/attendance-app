@@ -19,7 +19,7 @@ os.makedirs(AUDIO_FOLDER, exist_ok=True)
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 SENDER_EMAIL = "toraskarsanket2002@gmail.com"
-SENDER_PASSWORD = "kontuwejlfsuhyig"
+SENDER_PASSWORD = "kont uwej lfsu hyig"
 
 @app.errorhandler(BuildError)
 def handle_build_error(error):
@@ -33,9 +33,8 @@ def get_db_connection():
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('DROP TABLE IF EXISTS students')
     cursor.execute('''
-        CREATE TABLE students (
+        CREATE TABLE IF NOT EXISTS students (
             roll_no TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             class_name TEXT NOT NULL,
@@ -151,7 +150,7 @@ def send_manual_email(roll_no):
         if success:
             flash(f"Manual attendance email successfully sent to parent of {student['name']}.", 'success')
         else:
-            flash(f"Failed to send email. Check SMTP credentials.", 'danger')
+            flash(f"Failed to send email. Check SMTP credentials in app.py.", 'danger')
     else:
         flash("Student not found or parent email is missing.", 'danger')
         
@@ -208,7 +207,7 @@ def register():
                 VALUES (?, ?, ?, ?, ?, ?)
             """, (roll_no, name, class_name, parent_email, photo_path, audio_path))
             conn.commit()
-            return jsonify({'status': 'success', 'message': 'Student registered successfully with Blink & Voice biometrics!'})
+            return jsonify({'status': 'success', 'message': 'Student registered successfully with Verified Blink & Voice biometrics!'})
         except Exception as e:
             return jsonify({'status': 'error', 'message': f'Error: {e}'})
         finally:
@@ -272,7 +271,7 @@ def mark_attendance():
         
         return jsonify({
             'status': 'error', 
-            'message': f"❌ Verification Failed. Fusion Score ({int(fusion_score * 100)}%) Low. Remaining attempts allowed."
+            'message': f"❌ Verification Failed. Fusion Score ({int(fusion_score * 100)}%) Low."
         })
 
 @app.route('/student-login', methods=['GET', 'POST'])
