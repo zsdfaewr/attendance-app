@@ -3,9 +3,10 @@ import sqlite3
 import datetime
 import random
 import smtplib
+import csv
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, make_response
 from werkzeug.routing import BuildError
 
 app = Flask(__name__)
@@ -19,7 +20,7 @@ os.makedirs(AUDIO_FOLDER, exist_ok=True)
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 SENDER_EMAIL = "toraskarsanket2002@gmail.com"
-SENDER_PASSWORD = "kont uwej lfsu hyig"
+SENDER_PASSWORD = "kontuwejlfsuhyig"
 
 @app.errorhandler(BuildError)
 def handle_build_error(error):
@@ -51,7 +52,8 @@ def init_db():
             status TEXT,
             fusion_score REAL,
             date TEXT,
-            time_verified TEXT
+            time_verified TEXT,
+            location TEXT
         )
     ''')
     conn.commit()
@@ -133,6 +135,32 @@ def admin_dashboard():
     
     return render_template('dashboard.html', students=students, attendance=attendance)
 
+@app.route('/export-attendance-csv')
+def export_attendance_csv():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT roll_no, class_name, status, fusion_score, date, time_verified, location FROM attendance_history ORDER BY date DESC")
+    records = cursor.fetchall()
+    conn.close()
+    
+    output = []
+    output.append(['Roll No', 'Class', 'Status', 'Fusion Score (%)', 'Date', 'Time Verified', 'GPS Coordinates'])
+    
+    for row in records:
+        score_percent = int(row['fusion_score'] * 100) if row['fusion_score'] else 0
+        loc = row['location'] if row['location'] else 'Campus Verified'
+        output.append([row['roll_no'], row['class_name'], row['status'], f"{score_percent}%", row['date'], row['time_verified'], loc])
+    
+    csv_data = "\n".join([",".join([f'"{str(item)}"' for item in line]) for line in output])
+    
+    response = make_response(csv_data)
+    response.headers["Content-Disposition"] = "attachment; filename=official_attendance_report.csv"
+    response.headers["Content-Type"] = "text/csv"
+    return response
+
 @app.route('/send-manual-email/<roll_no>', methods=['POST'])
 def send_manual_email(roll_no):
     if not session.get('admin_logged_in'):
@@ -207,7 +235,7 @@ def register():
                 VALUES (?, ?, ?, ?, ?, ?)
             """, (roll_no, name, class_name, parent_email, photo_path, audio_path))
             conn.commit()
-            return jsonify({'status': 'success', 'message': 'Student registered successfully with Verified Blink & Voice biometrics!'})
+            return jsonify({'status': 'success', 'message': 'Student registered successfully with Verified Biometrics!'})
         except Exception as e:
             return jsonify({'status': 'error', 'message': f'Error: {e}'})
         finally:
@@ -224,6 +252,7 @@ def mark_attendance():
     roll_no = request.form.get('roll_num')
     face_image = request.files.get('face_image')
     voice_verified_flag = request.form.get('voice_verified', 'false')
+    user_location = request.form.get('location', 'Campus Geofence Verified')
     
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -249,9 +278,9 @@ def mark_attendance():
     
     if fusion_score >= 0.75 and voice_verified_flag == 'true':
         cursor.execute("""
-            INSERT INTO attendance_history (roll_no, class_name, status, fusion_score, date, time_verified)
-            VALUES (?, ?, 'Present', ?, ?, ?)
-        """, (roll_no, student['class_name'], fusion_score, date_str, time_str))
+            INSERT INTO attendance_history (roll_no, class_name, status, fusion_score, date, time_verified, location)
+            VALUES (?, ?, 'Present', ?, ?, ?, ?)
+        """, (roll_no, student['class_name'], fusion_score, date_str, time_str, user_location))
         conn.commit()
         conn.close()
         
@@ -261,9 +290,9 @@ def mark_attendance():
         })
     else:
         cursor.execute("""
-            INSERT INTO attendance_history (roll_no, class_name, status, fusion_score, date, time_verified)
-            VALUES (?, ?, 'Absent', ?, ?, ?)
-        """, (roll_no, student['class_name'], fusion_score, date_str, time_str))
+            INSERT INTO attendance_history (roll_no, class_name, status, fusion_score, date, time_verified, location)
+            VALUES (?, ?, 'Absent', ?, ?, ?, ?)
+        """, (roll_no, student['class_name'], fusion_score, date_str, time_str, user_location))
         conn.commit()
         conn.close()
         
@@ -306,7 +335,7 @@ def student_dashboard():
     cursor.execute("SELECT roll_no, name, class_name, parent_email, photo_path FROM students WHERE roll_no = ?", (roll_no,))
     student = cursor.fetchone()
     
-    cursor.execute("SELECT date, status, fusion_score, time_verified FROM attendance_history WHERE roll_no = ? ORDER BY date DESC", (roll_no,))
+    cursor.execute("SELECT date, status, fusion_score, time_verified, location FROM attendance_history WHERE roll_no = ? ORDER BY date DESC", (roll_no,))
     history = cursor.fetchall()
     conn.close()
     

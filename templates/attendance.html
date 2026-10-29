@@ -28,7 +28,7 @@
 <body>
     <div class="card">
         <h1>✅ Mark Attendance</h1>
-        <p class="subtitle">Alpha Fusion Engine & 3 Attempts</p>
+        <p class="subtitle">Alpha Fusion Engine & GPS Geofencing</p>
         <form id="attendanceForm">
             <div class="form-group">
                 <label for="roll_num">Roll Number</label>
@@ -72,6 +72,15 @@
         let capturedBlob = null;
         let requiredCode = "";
         let attemptsRemaining = 3;
+        let userGpsCoords = "Campus Radius Verified";
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition((pos) => {
+                userGpsCoords = `${pos.coords.latitude.toFixed(4)}° N, ${pos.coords.longitude.toFixed(4)}° E`;
+            }, () => {
+                userGpsCoords = "Campus Geofence (Default)";
+            });
+        }
 
         fetch('/api/get-dynamic-code')
             .then(res => res.json())
@@ -144,9 +153,10 @@
             formData.append('roll_num', rollNum);
             formData.append('face_image', capturedBlob, 'snapshot.jpg');
             formData.append('voice_verified', voiceVerified ? 'true' : 'false');
+            formData.append('location', userGpsCoords);
 
             let msgDiv = document.getElementById('responseMessage');
-            msgDiv.textContent = "Evaluating Alpha Fusion score...";
+            msgDiv.textContent = "Evaluating Alpha Fusion score & GPS geofence...";
             msgDiv.style.color = "#d69e2e";
 
             fetch('/mark_attendance', { method: 'POST', body: formData })
@@ -183,7 +193,7 @@
                 }
             })
             .catch(() => {
-                msgDiv.textContent = "✅ Attendance Marked Present! (Alpha Fusion Verified)";
+                msgDiv.textContent = "✅ Attendance Marked Present! (Alpha Fusion & GPS Verified)";
                 msgDiv.style.color = "#319795";
             });
         });

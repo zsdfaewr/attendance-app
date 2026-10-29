@@ -29,6 +29,8 @@
         .btn { padding: 8px 14px; border-radius: 8px; font-weight: 600; text-decoration: none; cursor: pointer; border: none; font-size: 0.85rem; transition: all 0.2s; display: inline-block; }
         .btn-primary { background-color: white; color: #2b6cb0; }
         .btn-primary:hover { background-color: #ebf8ff; }
+        .btn-export { background-color: #38a169; color: white; }
+        .btn-export:hover { background-color: #2f855a; }
         .btn-success { background-color: #319795; color: white; }
         .btn-success:hover { background-color: #2c7a7b; }
         .btn-danger { background-color: #e53e3e; color: white; }
@@ -48,6 +50,7 @@
             </div>
             <div class="header-actions">
                 <a href="{{ url_for('index') }}" class="btn btn-primary">🏠 Home</a>
+                <a href="{{ url_for('export_attendance_csv') }}" class="btn btn-export">📥 Export CSV Report</a>
                 <form action="{{ url_for('clear_database') }}" method="POST" style="display:inline;" onsubmit="return confirm('Clear all database records?');">
                     <button type="submit" class="btn btn-danger">Clear All Data</button>
                 </form>
@@ -130,6 +133,7 @@
                             <th>Fusion</th>
                             <th>Date</th>
                             <th>Time</th>
+                            <th>GPS Geofence</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -148,10 +152,11 @@
                                 <td><strong>{{ (a['fusion_score'] * 100) | int if a['fusion_score'] else 0 }}%</strong></td>
                                 <td>{{ a['date'] }}</td>
                                 <td>{{ a['time_verified'] or 'N/A' }}</td>
+                                <td><span style="font-size: 0.8rem; color: #4a5568;">📍 {{ a['location'] or 'Campus Radius' }}</span></td>
                             </tr>
                             {% endfor %}
                         {% else %}
-                            <tr><td colspan="6" style="text-align: center; color: #a0aec0; padding: 20px;">No logs available.</td></tr>
+                            <tr><td colspan="7" style="text-align: center; color: #a0aec0; padding: 20px;">No logs available.</td></tr>
                         {% endif %}
                     </tbody>
                 </table>
