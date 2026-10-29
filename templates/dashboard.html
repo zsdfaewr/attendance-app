@@ -23,16 +23,20 @@
         .section { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0; margin-bottom: 20px; overflow-x: auto; }
         .section h3 { margin-top: 0; color: #2d3748; font-size: 1.15rem; font-weight: 700; border-bottom: 2px solid #edf2f7; padding-bottom: 10px; }
         .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 500px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 600px; }
         th, td { padding: 12px 14px; border-bottom: 1px solid #edf2f7; text-align: left; font-size: 0.9rem; white-space: nowrap; }
         th { background: #f8fafc; color: #4a5568; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; }
         .btn { padding: 8px 14px; border-radius: 8px; font-weight: 600; text-decoration: none; cursor: pointer; border: none; font-size: 0.85rem; transition: all 0.2s; display: inline-block; }
         .btn-primary { background-color: white; color: #2b6cb0; }
         .btn-primary:hover { background-color: #ebf8ff; }
+        .btn-success { background-color: #319795; color: white; }
+        .btn-success:hover { background-color: #2c7a7b; }
         .btn-danger { background-color: #e53e3e; color: white; }
         .btn-danger:hover { background-color: #c53030; }
         .badge-present { background-color: #c6f6d5; color: #22543d; padding: 5px 10px; border-radius: 20px; font-weight: 600; font-size: 0.75rem; }
         .badge-absent { background-color: #fed7d7; color: #742a2a; padding: 5px 10px; border-radius: 20px; font-weight: 600; font-size: 0.75rem; }
+        .flash-success { background: #c6f6d5; color: #22543d; padding: 12px 16px; border-radius: 10px; margin-bottom: 20px; font-weight: 600; border: 1px solid #9ae6b4; }
+        .flash-danger { background: #fed7d7; color: #742a2a; padding: 12px 16px; border-radius: 10px; margin-bottom: 20px; font-weight: 600; border: 1px solid #feb2b2; }
     </style>
 </head>
 <body>
@@ -40,7 +44,7 @@
         <div class="header">
             <div>
                 <h1>📊 Executive Admin Dashboard</h1>
-                <p style="margin: 5px 0 0 0; opacity: 0.9; font-size: 0.85rem;">Alpha Fusion Biometrics & Parent Absentee Alerts</p>
+                <p style="margin: 5px 0 0 0; opacity: 0.9; font-size: 0.85rem;">Alpha Fusion Biometrics & Parent Absentee Management</p>
             </div>
             <div class="header-actions">
                 <a href="{{ url_for('index') }}" class="btn btn-primary">🏠 Home</a>
@@ -49,6 +53,18 @@
                 </form>
             </div>
         </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    {% if category == 'success' %}
+                        <div class="flash-success">{{ message }}</div>
+                    {% else %}
+                        <div class="flash-danger">{{ message }}</div>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
 
         <div class="charts-container">
             <div class="chart-box">
@@ -62,7 +78,7 @@
         </div>
 
         <div class="section">
-            <h3>👥 Registered Students & Contacts</h3>
+            <h3>👥 Registered Students & Manual Email Controls</h3>
             <div class="table-responsive">
                 <table>
                     <thead>
@@ -83,6 +99,11 @@
                                 <td>{{ s['class_name'] }}</td>
                                 <td>{{ s['parent_email'] or 'Not Provided' }}</td>
                                 <td>
+                                    {% if s['parent_email'] %}
+                                    <form action="{{ url_for('send_manual_email', roll_no=s['roll_no']) }}" method="POST" style="display:inline;" onsubmit="return confirm('Send manual attendance email to parent of {{ s['name'] }}?');">
+                                        <button type="submit" class="btn btn-success" style="padding: 5px 10px; font-size: 0.8rem; margin-right: 5px;">📧 Email Parent</button>
+                                    </form>
+                                    {% endif %}
                                     <form action="{{ url_for('delete_student', roll_no=s['roll_no']) }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete student {{ s['name'] }}?');">
                                         <button type="submit" class="btn btn-danger" style="padding: 5px 10px; font-size: 0.8rem;">Delete</button>
                                     </form>
@@ -124,7 +145,7 @@
                                         <span class="badge-absent">Absent</span>
                                     {% endif %}
                                 </td>
-                                <td><strong>{{ (a['fusion_score'] * 100) if a['fusion_score'] else 0 }}%</strong></td>
+                                <td><strong>{{ (a['fusion_score'] * 100) | int if a['fusion_score'] else 0 }}%</strong></td>
                                 <td>{{ a['date'] }}</td>
                                 <td>{{ a['time_verified'] or 'N/A' }}</td>
                             </tr>

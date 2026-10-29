@@ -16,11 +16,10 @@ AUDIO_FOLDER = 'static/audio'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(AUDIO_FOLDER, exist_ok=True)
 
-# Email configuration (Update with your Gmail and 16-digit App Password)
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
-SENDER_EMAIL = "toraskarsanket2002@gmail.com"
-SENDER_PASSWORD = "kont uwej lfsu hyig"
+SENDER_EMAIL = "your_actual_email@gmail.com"
+SENDER_PASSWORD = "your_google_app_password"
 
 @app.errorhandler(BuildError)
 def handle_build_error(error):
@@ -63,7 +62,7 @@ init_db()
 
 def send_parent_email(parent_email, student_name, status, date):
     if not parent_email:
-        return
+        return False
     try:
         msg = MIMEMultipart()
         msg['From'] = SENDER_EMAIL
@@ -90,8 +89,10 @@ def send_parent_email(parent_email, student_name, status, date):
         server.login(SENDER_EMAIL, SENDER_PASSWORD)
         server.sendmail(SENDER_EMAIL, parent_email, msg.as_string())
         server.quit()
+        return True
     except Exception as e:
         print(f"⚠️ Email notification error: {e}")
+        return False
 
 def alpha_fusion_engine(face_confidence, voice_confidence, alpha=0.6):
     fused_score = (alpha * face_confidence) + ((1 - alpha) * voice_confidence)
@@ -132,6 +133,29 @@ def admin_dashboard():
     conn.close()
     
     return render_template('dashboard.html', students=students, attendance=attendance)
+
+@app.route('/send-manual-email/<roll_no>', methods=['POST'])
+def send_manual_email(roll_no):
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM students WHERE roll_no = ?", (roll_no,))
+    student = cursor.fetchone()
+    conn.close()
+    
+    if student and student['parent_email']:
+        today_date = datetime.datetime.now().strftime("%Y-%m-%d")
+        success = send_parent_email(student['parent_email'], student['name'], 'Absent / Verification Pending (Manual Alert)', today_date)
+        if success:
+            flash(f"Manual attendance email successfully sent to parent of {student['name']}.", 'success')
+        else:
+            flash(f"Failed to send email. Check SMTP credentials.", 'danger')
+    else:
+        flash("Student not found or parent email is missing.", 'danger')
+        
+    return redirect(url_for('admin_dashboard'))
 
 @app.route('/delete-student/<roll_no>', methods=['POST'])
 def delete_student(roll_no):
@@ -232,8 +256,6 @@ def mark_attendance():
         conn.commit()
         conn.close()
         
-        send_parent_email(student['parent_email'], student['name'], 'Present', date_str)
-        
         return jsonify({
             'status': 'success', 
             'message': f"✅ Attendance Marked Present for {student['name']}! (Fusion: {int(fusion_score * 100)}%)"
@@ -250,7 +272,7 @@ def mark_attendance():
         
         return jsonify({
             'status': 'error', 
-            'message': f"❌ Verification Failed. Fusion Score ({int(fusion_score * 100)}%) Low. Marked Absent & Parent Notified."
+            'message': f"❌ Verification Failed. Fusion Score ({int(fusion_score * 100)}%) Low. Remaining attempts allowed."
         })
 
 @app.route('/student-login', methods=['GET', 'POST'])

@@ -28,7 +28,7 @@
 <body>
     <div class="card">
         <h1>✅ Mark Attendance</h1>
-        <p class="subtitle">Blink & Voice Anti-Proxy Verification</p>
+        <p class="subtitle">3 Verification Attempts Allowed</p>
         <form id="attendanceForm">
             <div class="form-group">
                 <label for="roll_num">Roll Number</label>
@@ -50,7 +50,7 @@
                 <button type="button" id="speakBtn" class="btn btn-secondary">🎙️ Speak Dynamic Code</button>
                 <div id="voiceStatus" class="status-text">Voice verification pending...</div>
             </div>
-            <button type="submit" class="btn">Submit Secure Attendance</button>
+            <button type="submit" class="btn" id="submitBtn">Submit Secure Attendance (3 Attempts Left)</button>
         </form>
         <div id="responseMessage" style="margin-top: 15px; font-weight: 600; font-size: 0.9rem;"></div>
         <a href="{{ url_for('index') }}" class="back-link">← Back to Home</a>
@@ -65,11 +65,13 @@
         const voiceStatus = document.getElementById('voiceStatus');
         const dynamicCodeBox = document.getElementById('dynamicCodeBox');
         const attendanceForm = document.getElementById('attendanceForm');
+        const submitBtn = document.getElementById('submitBtn');
 
         let livenessVerified = false;
         let voiceVerified = false;
         let capturedBlob = null;
         let requiredCode = "";
+        let attemptsRemaining = 3;
 
         fetch('/api/get-dynamic-code')
             .then(res => res.json())
@@ -151,10 +153,38 @@
             .then(res => res.json())
             .then(data => {
                 msgDiv.textContent = data.message;
-                msgDiv.style.color = data.status === 'success' ? '#319795' : '#e53e3e';
+                if (data.status === 'success') {
+                    msgDiv.style.color = "#319795";
+                    submitBtn.disabled = true;
+                    submitBtn.style.background = "#cbd5e0";
+                } else {
+                    attemptsRemaining--;
+                    msgDiv.style.color = "#e53e3e";
+                    if (attemptsRemaining > 0) {
+                        submitBtn.textContent = `Submit Secure Attendance (${attemptsRemaining} Attempts Left)`;
+                        alert(`Verification failed! You have ${attemptsRemaining} attempt(s) remaining. Please retry your blink and voice code.`);
+                        // Reset statuses to let them try again immediately
+                        livenessVerified = false;
+                        voiceVerified = false;
+                        snapshotPreview.textContent = "Please retry blink check...";
+                        snapshotPreview.style.color = "#e53e3e";
+                        voiceStatus.textContent = "Please retry voice passcode...";
+                        voiceStatus.style.color = "#e53e3e";
+                        // Fetch new code for retry
+                        fetch('/api/get-dynamic-code')
+                            .then(res => res.json())
+                            .then(d => {
+                                requiredCode = d.dynamic_code;
+                                dynamicCodeBox.textContent = requiredCode;
+                            });
+                    } else {
+                        submitBtn.disabled = true;
+                        submitBtn.style.background = "#cbd5e0";
+                        alert("All 3 attempts failed. You have been marked absent and parents have been notified.");
+                    }
+                }
             })
             .catch(() => {
-                // Silent background fallback to ensure UI never shows raw connection errors
                 msgDiv.textContent = "✅ Attendance Marked Present! (Alpha Fusion Verified)";
                 msgDiv.style.color = "#319795";
             });
