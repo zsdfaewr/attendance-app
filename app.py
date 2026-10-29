@@ -20,7 +20,7 @@ os.makedirs(AUDIO_FOLDER, exist_ok=True)
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 SENDER_EMAIL = "toraskarsanket2002@gmail.com"
-SENDER_PASSWORD = "kont uwej lfsu hyig"
+SENDER_PASSWORD = "kontuwejlfsuhyig"
 
 @app.errorhandler(BuildError)
 def handle_build_error(error):
@@ -35,8 +35,10 @@ def get_db_connection():
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
+    # Clean drop and recreate to prevent missing column errors
+    cursor.execute('DROP TABLE IF EXISTS students')
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS students (
+        CREATE TABLE students (
             roll_no TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             class_name TEXT NOT NULL,
