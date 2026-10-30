@@ -13,6 +13,7 @@ from werkzeug.routing import BuildError
 try:
     from reportlab.lib.pagesizes import letter
     from reportlab.pdfgen import canvas
+    import io
     PDF_SUPPORT = True
 except ImportError:
     PDF_SUPPORT = False
@@ -70,6 +71,12 @@ def init_db():
     conn.close()
 
 init_db()
+
+def get_ist_now():
+    """Returns current date and time strictly in Indian Standard Time (IST)"""
+    utc_now = datetime.datetime.utcnow()
+    ist_now = utc_now + datetime.timedelta(hours=5, minutes=30)
+    return ist_now.strftime("%Y-%m-%d"), ist_now.strftime("%H:%M:%S")
 
 def send_parent_email(parent_email, student_name, status, date):
     if not parent_email:
@@ -143,12 +150,12 @@ def admin_dashboard():
     if dept_filter and dept_filter != 'All':
         cursor.execute("SELECT * FROM students WHERE department = ?", (dept_filter,))
         students = cursor.fetchall()
-        cursor.execute("SELECT * FROM attendance_history WHERE department = ? ORDER BY date DESC", (dept_filter,))
+        cursor.execute("SELECT * FROM attendance_history WHERE department = ? ORDER BY date DESC, time_verified DESC", (dept_filter,))
         attendance = cursor.fetchall()
     else:
         cursor.execute("SELECT * FROM students")
         students = cursor.fetchall()
-        cursor.execute("SELECT * FROM attendance_history ORDER BY date DESC")
+        cursor.execute("SELECT * FROM attendance_history ORDER BY date DESC, time_verified DESC")
         attendance = cursor.fetchall()
         
     conn.close()
@@ -177,8 +184,8 @@ def export_attendance_csv():
     csv_data = "\n".join([",".join([f'"{str(item)}"' for item in line]) for line in output])
     
     response = make_response(csv_data)
-    response.headers["Content-Disposition"] = "attachment; filename=institutional_attendance_report.csv"
-    response.headers["Content-Type"] = "text/csv"
+    response.headers["Content-Disposition"] = "attachment; filename=attendance_report.csv"
+    response.headers["Content-Type"] = "text/csv; charset=utf-8"
     return response
 
 @app.route('/export-attendance-pdf')
@@ -196,8 +203,8 @@ def export_attendance_pdf():
     records = cursor.fetchall()
     conn.close()
     
-    pdf_path = "static/attendance_report.pdf"
-    c = canvas.Canvas(pdf_path, pagesize=letter)
+    buffer = io.BytesIO()
+    c = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
     
     c.setFont("Helvetica-Bold", 16)
@@ -232,8 +239,12 @@ def export_attendance_pdf():
         y -= 18
         
     c.save()
+    buffer.seek(0)
     
-    return redirect(url_for('static', filename='attendance_report.pdf'))
+    response = make_response(buffer.getvalue())
+    response.headers["Content-Disposition"] = "attachment; filename=attendance_report.pdf"
+    response.headers["Content-Type"] = "application/pdf"
+    return response
 
 @app.route('/send-manual-email/<roll_no>', methods=['POST'])
 def send_manual_email(roll_no):
@@ -247,7 +258,7 @@ def send_manual_email(roll_no):
     conn.close()
     
     if student and student['parent_email']:
-        today_date = datetime.datetime.now().strftime("%Y-%m-%d")
+        today_date, _ = get_ist_now()
         success = send_parent_email(student['parent_email'], student['name'], 'Absent / Verification Pending (Manual Alert)', today_date)
         if success:
             flash(f"Manual attendance email successfully sent to parent of {student['name']}.", 'success')
@@ -347,9 +358,7 @@ def mark_attendance():
     
     fusion_score = alpha_fusion_engine(face_confidence, voice_confidence, alpha=0.6)
     
-    now = datetime.datetime.now()
-    date_str = now.strftime("%Y-%m-%d")
-    time_str = now.strftime("%H:%M:%S")
+    date_str, time_str = get_ist_now()
     
     if fusion_score >= 0.75 and voice_verified_flag == 'true':
         cursor.execute("""
@@ -410,7 +419,7 @@ def student_dashboard():
     cursor.execute("SELECT roll_no, name, department, class_name, parent_email, photo_path FROM students WHERE roll_no = ?", (roll_no,))
     student = cursor.fetchone()
     
-    cursor.execute("SELECT date, status, fusion_score, time_verified, location FROM attendance_history WHERE roll_no = ? ORDER BY date DESC", (roll_no,))
+    cursor.execute("SELECT date, status, fusion_score, time_verified, location FROM attendance_history WHERE roll_no = ? ORDER BY date DESC, time_verified DESC", (roll_no,))
     history = cursor.fetchall()
     conn.close()
     
