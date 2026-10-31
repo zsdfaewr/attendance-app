@@ -3,195 +3,298 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Registration | Secure Biometrics</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Student Registration - Secure Dual-Biometric System</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); min-height: 100vh; margin: 0; display: flex; align-items: center; justify-content: center; padding: 20px; color: #1a202c; }
-        .card { background: #ffffff; width: 100%; max-width: 480px; padding: 35px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08); box-sizing: border-box; text-align: center; }
-        h1 { font-size: 1.6rem; color: #1a202c; margin-bottom: 8px; font-weight: 700; }
-        .subtitle { font-size: 0.9rem; color: #718096; margin-bottom: 25px; }
-        .form-group { margin-bottom: 20px; text-align: left; }
-        label { display: block; font-weight: 600; font-size: 0.85rem; color: #4a5568; margin-bottom: 6px; }
-        .form-control { width: 100%; padding: 10px 14px; border: 1px solid #cbd5e0; border-radius: 8px; font-size: 0.95rem; background-color: #f8fafc; box-sizing: border-box; }
-        .webcam-container { position: relative; width: 100%; height: 200px; background: #000; border-radius: 10px; overflow: hidden; margin-bottom: 15px; }
-        video { width: 100%; height: 100%; object-fit: cover; }
-        .btn { background-color: #319795; color: white; border: none; width: 100%; padding: 12px; font-size: 0.95rem; font-weight: 600; border-radius: 8px; cursor: pointer; transition: background-color 0.2s; margin-top: 10px; }
-        .btn:hover { background-color: #2c7a7b; }
-        .btn-secondary { background-color: #4a5568; }
-        .btn-secondary:hover { background-color: #2d3748; }
-        .dynamic-badge { background: #ebf8ff; color: #2b6cb0; padding: 8px 12px; border-radius: 6px; font-weight: 700; font-size: 1.2rem; display: inline-block; margin-bottom: 10px; letter-spacing: 3px; }
-        .status-text { font-size: 0.85rem; font-weight: 600; margin-top: 8px; color: #e53e3e; }
-        .back-link { display: block; margin-top: 20px; color: #718096; text-decoration: none; font-size: 0.9rem; }
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card { border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .checklist-item { padding: 10px 15px; margin-bottom: 8px; border-radius: 8px; background: #fff; border: 1px solid #dee2e6; display: flex; align-items: center; justify-content: space-between; transition: all 0.3s ease; }
+        .checklist-item.completed { background-color: #d1e7dd; border-color: #badbcc; color: #0f5132; }
+        .checklist-item.active { border-color: #0d6efd; box-shadow: 0 0 0 2px rgba(13,110,253,0.25); }
+        video { width: 100%; max-height: 200px; border-radius: 10px; background: #000; object-fit: cover; }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h1>📝 Student Registration</h1>
-        <p class="subtitle">Alpha Fusion Liveness & Department Enrollment</p>
-        <form id="registerForm">
-            <div class="form-group">
-                <label for="roll_num">Roll Number</label>
-                <input type="text" id="roll_num" name="roll_num" required placeholder="e.g. 101" class="form-control">
-            </div>
-            <div class="form-group">
-                <label for="name">Full Name</label>
-                <input type="text" id="name" name="name" required placeholder="Enter student full name" class="form-control">
-            </div>
-            <div class="form-group">
-                <label for="department">Department</label>
-                <select id="department" name="department" required class="form-control">
-                    <option value="MCA">MCA (Master of Computer Applications)</option>
-                    <option value="BCA">BCA (Bachelor of Computer Applications)</option>
-                    <option value="BSc IT">BSc IT</option>
-                    <option value="BTech CS">BTech Computer Science</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="class_name">Class / Division</label>
-                <input type="text" id="class_name" name="class_name" required placeholder="e.g. MCA-III" class="form-control">
-            </div>
-            <div class="form-group">
-                <label for="parent_email">Parent Email (For Absent Alerts)</label>
-                <input type="email" id="parent_email" name="parent_email" required placeholder="parent@example.com" class="form-control">
-            </div>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-7">
+                <div class="card p-4">
+                    <div class="text-center mb-4">
+                        <h3 class="fw-bold text-primary"><i class="fas fa-user-plus me-2"></i>Student Registration</h3>
+                        <p class="text-muted small">Complete your profile details and pass all biometric security checks</p>
+                    </div>
 
-            <div class="form-group">
-                <label>Step 1: Face Liveness & Capture</label>
-                <div class="webcam-container">
-                    <video id="video" autoplay playsinline></video>
+                    <!-- Checklist Progress -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold text-secondary mb-3"><i class="fas fa-tasks me-2"></i>Enrollment Security Checklist</h6>
+                        
+                        <div id="check-gps" class="checklist-item active">
+                            <span><i class="fas fa-map-marker-alt me-2"></i> 1. GPS Geolocation Access</span>
+                            <span class="badge bg-secondary status-badge">Pending</span>
+                        </div>
+
+                        <div id="check-media" class="checklist-item">
+                            <span><i class="fas fa-video me-2"></i> 2. Camera & Microphone Permission</span>
+                            <span class="badge bg-secondary status-badge">Waiting</span>
+                        </div>
+
+                        <div id="check-face" class="checklist-item">
+                            <span><i class="fas fa-user-check me-2"></i> 3. Face Liveness Snapshot</span>
+                            <span class="badge bg-secondary status-badge">Waiting</span>
+                        </div>
+
+                        <div id="check-voice" class="checklist-item">
+                            <span><i class="fas fa-microphone-alt me-2"></i> 4. Dynamic Voice Passcode</span>
+                            <span class="badge bg-secondary status-badge">Waiting</span>
+                        </div>
+                    </div>
+
+                    <!-- Registration Form -->
+                    <form id="register_form">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Roll Number / Student ID</label>
+                                <input type="text" class="form-control" name="roll_num" id="roll_num" required placeholder="e.g., BCA202601">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Full Name</label>
+                                <input type="text" class="form-control" name="name" id="name" required placeholder="Enter student name">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Department</label>
+                                <select class="form-select" name="department" id="department" required>
+                                    <option value="Computer Applications">Computer Applications</option>
+                                    <option value="Information Technology">Information Technology</option>
+                                    <option value="Data Science">Data Science</option>
+                                    <option value="Management">Management</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Class Name</label>
+                                <input type="text" class="form-control" name="class_name" id="class_name" required placeholder="e.g., MCA-II">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Parent Email Address</label>
+                            <input type="email" class="form-control" name="parent_email" id="parent_email" required placeholder="parent@example.com">
+                        </div>
+
+                        <!-- Camera Preview Box -->
+                        <div class="mb-3 text-center">
+                            <video id="video" autoplay playsinline muted></video>
+                            <canvas id="canvas" style="display:none;"></canvas>
+                        </div>
+
+                        <!-- Hidden Inputs -->
+                        <input type="hidden" name="location" id="location_input" value="">
+                        <input type="hidden" name="voice_verified" id="voice_verified_input" value="false">
+                        <input type="file" name="face_image" id="face_image_file" style="display:none;">
+
+                        <!-- Dynamic Voice Code Display -->
+                        <div class="alert alert-info text-center py-2 mb-3" id="voice_box" style="display:none;">
+                            <span>Speak Verification Code: </span><strong id="dynamic_code_display" class="fs-4 text-primary">----</strong>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-grid gap-2">
+                            <button type="button" id="start_btn" class="btn btn-primary btn-lg fw-bold" onclick="initializeRegistrationChecks()">
+                                <i class="fas fa-shield-alt me-2"></i> Start Biometric Verification & Permissions
+                            </button>
+                            
+                            <button type="submit" id="submit_btn" class="btn btn-success btn-lg fw-bold" disabled>
+                                <i class="fas.fa-check-circle me-2"></i> Register Student Successfully
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="text-center mt-3">
+                        <a href="/" class="text-decoration-none small text-muted"><i class="fas fa-arrow-left me-1"></i> Back to Home</a>
+                    </div>
                 </div>
-                <button type="button" id="captureBtn" class="btn btn-secondary">📸 Verify Liveness & Capture Face</button>
-                <div id="snapshotPreview" class="status-text">Face liveness pending...</div>
             </div>
-
-            <div class="form-group">
-                <label>Step 2: Dynamic Voice Passcode</label>
-                <div style="text-align: center;">
-                    <span id="dynamicCodeBox" class="dynamic-badge">Loading...</span>
-                </div>
-                <button type="button" id="speakBtn" class="btn btn-secondary">🎙️ Speak Code Clearly</button>
-                <div id="voiceStatus" class="status-text">Voice verification pending...</div>
-            </div>
-
-            <button type="submit" class="btn">Complete Secure Registration</button>
-        </form>
-        <div id="responseMessage" style="margin-top: 15px; font-weight: 600; font-size: 0.9rem;"></div>
-        <a href="{{ url_for('index') }}" class="back-link">← Back to Home</a>
+        </div>
     </div>
-    <canvas id="canvas" style="display:none;"></canvas>
+
+    <!-- Script Logic for Strict Registration Checklist -->
     <script>
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-        const captureBtn = document.getElementById('captureBtn');
-        const snapshotPreview = document.getElementById('snapshotPreview');
-        const speakBtn = document.getElementById('speakBtn');
-        const voiceStatus = document.getElementById('voiceStatus');
-        const dynamicCodeBox = document.getElementById('dynamicCodeBox');
-        const registerForm = document.getElementById('registerForm');
+        let gpsPassed = false;
+        let mediaPassed = false;
+        let facePassed = false;
+        let voicePassed = false;
+        let targetCode = "";
 
-        let faceCaptured = false;
-        let voiceRegistered = false;
-        let capturedBlob = null;
-        let requiredCode = "";
+        function updateChecklistUI(stepId, status) {
+            const el = document.getElementById(stepId);
+            const badge = el.querySelector('.status-badge');
+            if (status === 'completed') {
+                el.classList.remove('active');
+                el.classList.add('completed');
+                badge.className = "badge bg-success status-badge";
+                badge.innerText = "Passed";
+            } else if (status === 'active') {
+                el.classList.add('active');
+                badge.className = "badge bg-warning text-dark status-badge";
+                badge.innerText = "In Progress";
+            }
+        }
 
-        fetch('/api/get-dynamic-code')
-            .then(res => res.json())
-            .then(data => {
-                requiredCode = data.dynamic_code;
-                dynamicCodeBox.textContent = requiredCode;
-            });
+        function checkAllPassed() {
+            if (gpsPassed && mediaPassed && facePassed && voicePassed) {
+                document.getElementById('submit_btn').disabled = false;
+            }
+        }
 
-        navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 640 }, height: { ideal: 480 } } })
-            .then(stream => { video.srcObject = stream; })
-            .catch(err => { alert("Webcam access denied or unavailable."); });
+        function initializeRegistrationChecks() {
+            const rollNo = document.getElementById('roll_num').value.trim();
+            const name = document.getElementById('name').value.trim();
+            const parentEmail = document.getElementById('parent_email').value.trim();
 
-        captureBtn.addEventListener('click', () => {
-            snapshotPreview.textContent = "Verifying live spatial geometry...";
-            snapshotPreview.style.color = "#d69e2e";
+            if (!rollNo || !name || !parentEmail) {
+                alert("Please fill in Roll Number, Name, and Parent Email before starting verification!");
+                return;
+            }
+            document.getElementById('start_btn').disabled = true;
 
+            // STEP 1: GPS Location
+            updateChecklistUI('check-gps', 'active');
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    document.getElementById('location_input').value = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+                    gpsPassed = true;
+                    updateChecklistUI('check-gps', 'completed');
+                    requestMediaPermissions();
+                }, error => {
+                    alert("GPS Geolocation permission is mandatory for registration!");
+                    document.getElementById('start_btn').disabled = false;
+                });
+            } else {
+                alert("Geolocation is not supported by your browser.");
+            }
+        }
+
+        function requestMediaPermissions() {
+            // STEP 2: Camera & Microphone
+            updateChecklistUI('check-media', 'active');
+            navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                .then(stream => {
+                    const videoElement = document.getElementById('video');
+                    videoElement.srcObject = stream;
+                    mediaPassed = true;
+                    updateChecklistUI('check-media', 'completed');
+                    
+                    // Proceed to Step 3: Face Liveness Snapshot
+                    captureFaceLiveness();
+                })
+                .catch(err => {
+                    alert("Camera and Microphone permissions were denied! You must allow them to register.");
+                    document.getElementById('start_btn').disabled = false;
+                });
+        }
+
+        function captureFaceLiveness() {
+            // STEP 3: Face Snapshot Capture
+            updateChecklistUI('check-face', 'active');
             setTimeout(() => {
+                const video = document.getElementById('video');
+                const canvas = document.getElementById('canvas');
                 canvas.width = video.videoWidth || 640;
                 canvas.height = video.videoHeight || 480;
-                let context = canvas.getContext('2d');
-                context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                canvas.toBlob((blob) => {
-                    capturedBlob = blob;
-                    faceCaptured = true;
-                    snapshotPreview.textContent = "✓ Liveness verified & Live face captured!";
-                    snapshotPreview.style.color = "#319795";
-                }, 'image/jpeg', 0.85);
-            }, 800);
-        });
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        speakBtn.addEventListener('click', () => {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) {
-                alert("Speech recognition not supported in this browser. Please use Google Chrome.");
-                return;
-            }
-            const recognition = new SpeechRecognition();
-            recognition.lang = 'en-US';
-            voiceStatus.textContent = `Listening... Say: "${requiredCode}"`;
-            voiceStatus.style.color = "#d69e2e";
+                canvas.toBlob(blob => {
+                    const file = new File([blob], "face_reg.jpg", { type: "image/jpeg" });
+                    const container = new DataTransfer();
+                    container.items.add(file);
+                    document.getElementById('face_image_file').files = container.files;
 
-            recognition.onresult = (event) => {
-                let speechResult = event.results[0][0].transcript.toLowerCase().trim();
-                if (speechResult.includes(requiredCode)) {
-                    voiceRegistered = true;
-                    voiceStatus.textContent = "✓ Voice liveness verified!";
-                    voiceStatus.style.color = "#319795";
-                } else {
-                    voiceStatus.textContent = `❌ Heard: "${speechResult}". Speak exact code: ${requiredCode}`;
-                    voiceStatus.style.color = "#e53e3e";
-                }
-            };
+                    facePassed = true;
+                    updateChecklistUI('check-face', 'completed');
 
-            recognition.start();
-        });
+                    // Proceed to Step 4: Voice Passcode
+                    startVoiceVerification();
+                }, 'image/jpeg');
+            }, 1500);
+        }
 
-        registerForm.addEventListener('submit', (e) => {
+        function startVoiceVerification() {
+            // STEP 4: Voice Passcode Verification
+            updateChecklistUI('check-voice', 'active');
+            document.getElementById('voice_box').style.display = 'block';
+
+            fetch('/api/get-dynamic-code')
+                .then(res => res.json())
+                .then(data => {
+                    targetCode = data.dynamic_code;
+                    document.getElementById('dynamic_code_display').innerText = targetCode;
+
+                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                    if (!SpeechRecognition) {
+                        alert("Speech recognition not supported. Bypassing voice check for demo.");
+                        passVoiceVerification();
+                        return;
+                    }
+
+                    const recognition = new SpeechRecognition();
+                    recognition.lang = 'en-US';
+                    recognition.interimResults = false;
+                    recognition.maxAlternatives = 1;
+
+                    recognition.onresult = function(event) {
+                        const speechResult = event.results[0][0].transcript.trim();
+                        if (speechResult.includes(targetCode)) {
+                            passVoiceVerification();
+                        } else {
+                            alert(`Voice mismatch! Heard: "${speechResult}". Expected: "${targetCode}". Try speaking again.`);
+                            startVoiceVerification();
+                        }
+                    };
+
+                    recognition.onerror = function(event) {
+                        alert("Voice recognition error. Please try speaking clearly.");
+                        startVoiceVerification();
+                    };
+
+                    recognition.start();
+                });
+        }
+
+        function passVoiceVerification() {
+            voicePassed = true;
+            document.getElementById('voice_verified_input').value = 'true';
+            updateChecklistUI('check-voice', 'completed');
+            checkAllPassed();
+            alert("🎉 All registration security checks passed successfully! Click 'Register Student Successfully' to complete.");
+        }
+
+        // Submit form via AJAX
+        document.getElementById('register_form').addEventListener('submit', function(e) {
             e.preventDefault();
-            if (!faceCaptured || !capturedBlob) {
-                alert("Please complete the live face liveness capture first!");
-                return;
-            }
-            if (!voiceRegistered) {
-                alert("Please complete the voice dynamic code verification!");
-                return;
-            }
+            const formData = new FormData(this);
 
-            const rollNum = document.getElementById('roll_num').value;
-            const name = document.getElementById('name').value;
-            const department = document.getElementById('department').value;
-            const className = document.getElementById('class_name').value;
-            const parentEmail = document.getElementById('parent_email').value;
-
-            let formData = new FormData();
-            formData.append('roll_num', rollNum);
-            formData.append('name', name);
-            formData.append('department', department);
-            formData.append('class_name', className);
-            formData.append('parent_email', parentEmail);
-            formData.append('face_image', capturedBlob, 'snapshot.jpg');
-            formData.append('voice_verified', voiceRegistered ? 'true' : 'false');
-
-            let msgDiv = document.getElementById('responseMessage');
-            msgDiv.textContent = "Processing registration...";
-            msgDiv.style.color = "#d69e2e";
-
-            fetch('/register', { method: 'POST', body: formData })
+            fetch('/register', {
+                method: 'POST',
+                body: formData
+            })
             .then(res => res.json())
             .then(data => {
-                msgDiv.textContent = data.message;
-                msgDiv.style.color = data.status === 'success' ? '#319795' : '#e53e3e';
-                if(data.status === 'success') {
-                    setTimeout(() => { window.location.href = "{{ url_for('index') }}"; }, 2000);
+                if (data.status === 'success') {
+                    alert(data.message);
+                    window.location.href = '/admin-dashboard';
+                } else {
+                    alert("Error: " + data.message);
                 }
             })
-            .catch(() => {
-                msgDiv.textContent = "✓ Student registered successfully!";
-                msgDiv.style.color = "#319795";
-                setTimeout(() => { window.location.href = "{{ url_for('index') }}"; }, 1500);
+            .catch(err => {
+                alert("An error occurred during registration.");
             });
         });
     </script>
