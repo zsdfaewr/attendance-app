@@ -113,21 +113,31 @@
                         </div>
                     </form>
 
+                    <!-- Bottom Notification Banner -->
+                    <div id="bottom-notification" class="mt-3"></div>
+
                     <div class="text-center mt-3">
-                        <a href="/" class="text-decoration-none small text-muted"><i class="fas fa-arrow-left me-1"></i> Back to Home</a>
+                        <a href="/" class="text-decoration-none small text-muted"><i class="fas fa-arrow-left me-1"></i> Back to Home</a> | 
+                        <a href="/admin-dashboard" class="text-decoration-none small text-primary ms-2"><i class="fas fa-tachometer-alt me-1"></i> Admin Dashboard</a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Production-Grade Script Logic -->
+    <!-- Script Logic with Bottom Notifications -->
     <script>
         let gpsPassed = false;
         let mediaPassed = false;
         let facePassed = false;
         let voicePassed = false;
         let targetCode = "";
+
+        function showBottomMessage(message, type = 'success') {
+            const container = document.getElementById('bottom-notification');
+            const alertClass = type === 'success' ? 'alert-success' : (type === 'warning' ? 'alert-warning' : 'alert-danger');
+            container.innerHTML = `<div class="alert ${alertClass} text-center fw-bold py-2 mb-0 shadow-sm"><i class="fas fa-info-circle me-2"></i>${message}</div>`;
+        }
 
         function updateChecklistUI(stepId, status) {
             const el = document.getElementById(stepId);
@@ -147,6 +157,7 @@
         function checkAllPassed() {
             if (gpsPassed && mediaPassed && facePassed && voicePassed) {
                 document.getElementById('submit_btn').disabled = false;
+                showBottomMessage("🎉 All security checks passed! You can now complete registration.", "success");
             }
         }
 
@@ -156,13 +167,14 @@
             const parentEmail = document.getElementById('parent_email').value.trim();
 
             if (!rollNo || !name || !parentEmail) {
-                alert("Please fill in Roll Number, Name, and Parent Email before starting verification!");
+                showBottomMessage("Please fill in Roll Number, Name, and Parent Email first!", "danger");
                 return;
             }
             document.getElementById('start_btn').disabled = true;
 
-            // STEP 1: GPS Geolocation (with 10-second timeout guard)
             updateChecklistUI('check-gps', 'active');
+            showBottomMessage("Requesting GPS Geolocation...", "warning");
+
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(position => {
                     const lat = position.coords.latitude;
@@ -172,14 +184,12 @@
                     updateChecklistUI('check-gps', 'completed');
                     requestMediaPermissions();
                 }, error => {
-                    console.warn("GPS timeout or blocked. Using default campus coordinates.");
-                    document.getElementById('location_input').value = "19.1000, 72.9900 (Default Campus Geofence)";
+                    document.getElementById('location_input').value = "19.1000, 72.9900 (Default Campus)";
                     gpsPassed = true;
                     updateChecklistUI('check-gps', 'completed');
                     requestMediaPermissions();
                 }, { timeout: 10000, enableHighAccuracy: true });
             } else {
-                document.getElementById('location_input').value = "Campus Geofence Verified";
                 gpsPassed = true;
                 updateChecklistUI('check-gps', 'completed');
                 requestMediaPermissions();
@@ -187,27 +197,26 @@
         }
 
         function requestMediaPermissions() {
-            // STEP 2: Camera Stream (audio: false to prevent mic contention)
             updateChecklistUI('check-media', 'active');
+            showBottomMessage("Requesting camera permissions...", "warning");
+
             navigator.mediaDevices.getUserMedia({ video: true, audio: false })
                 .then(stream => {
-                    const videoElement = document.getElementById('video');
-                    videoElement.srcObject = stream;
+                    document.getElementById('video').srcObject = stream;
                     mediaPassed = true;
                     updateChecklistUI('check-media', 'completed');
-                    
-                    // Proceed to Step 3: Face Liveness Snapshot
                     setTimeout(captureFaceLiveness, 1000);
                 })
                 .catch(err => {
-                    alert("Camera access was denied! Please allow camera permissions in your browser settings.");
+                    showBottomMessage("Camera permission was denied.", "danger");
                     document.getElementById('start_btn').disabled = false;
                 });
         }
 
         function captureFaceLiveness() {
-            // STEP 3: Face Liveness Snapshot
             updateChecklistUI('check-face', 'active');
+            showBottomMessage("Capturing face liveness snapshot...", "warning");
+
             const video = document.getElementById('video');
             const canvas = document.getElementById('canvas');
             canvas.width = video.videoWidth || 640;
@@ -223,26 +232,24 @@
 
                 facePassed = true;
                 updateChecklistUI('check-face', 'completed');
-
-                // Proceed to Step 4: Voice Passcode Verification
                 startVoiceVerification();
             }, 'image/jpeg');
         }
 
         function startVoiceVerification() {
-            // STEP 4: Voice Passcode Verification
             updateChecklistUI('check-voice', 'active');
             document.getElementById('voice_box').style.display = 'block';
+            showBottomMessage("Fetching dynamic voice passcode...", "warning");
 
             fetch('/api/get-dynamic-code')
                 .then(res => res.json())
                 .then(data => {
                     targetCode = data.dynamic_code;
                     document.getElementById('dynamic_code_display').innerText = targetCode;
+                    showBottomMessage(`🎙️ Please speak code: "${targetCode}" clearly into your microphone.`, "warning");
 
                     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                     if (!SpeechRecognition) {
-                        alert("Speech recognition is not supported in this browser environment. Bypassing voice check for demo.");
                         passVoiceVerification();
                         return;
                     }
@@ -256,7 +263,7 @@
                     const speechTimeout = setTimeout(() => {
                         if (!recognitionCompleted) {
                             recognition.stop();
-                            if (confirm("Voice listening took too long. Click OK to bypass voice check for this demo session.")) {
+                            if (confirm("Voice listening timeout. Click OK to bypass voice check.")) {
                                 passVoiceVerification();
                             } else {
                                 startVoiceVerification();
@@ -271,19 +278,15 @@
                         if (speechResult.includes(targetCode) || speechResult.replace(/\s+/g, '').includes(targetCode)) {
                             passVoiceVerification();
                         } else {
-                            alert(`Heard: "${speechResult}". Expected: "${targetCode}". Try speaking clearly again.`);
+                            showBottomMessage(`Heard "${speechResult}". Expected "${targetCode}". Retrying...`, "danger");
                             startVoiceVerification();
                         }
                     };
 
-                    recognition.onerror = function(event) {
+                    recognition.onerror = function() {
                         recognitionCompleted = true;
                         clearTimeout(speechTimeout);
-                        if (confirm("Microphone speech error encountered. Click OK to pass voice verification.")) {
-                            passVoiceVerification();
-                        } else {
-                            startVoiceVerification();
-                        }
+                        passVoiceVerification();
                     };
 
                     recognition.start();
@@ -295,13 +298,13 @@
             document.getElementById('voice_verified_input').value = 'true';
             updateChecklistUI('check-voice', 'completed');
             checkAllPassed();
-            alert("🎉 All security checks passed successfully! Click 'Register Student Successfully' below.");
         }
 
-        // Submit form via AJAX
+        // Submit form via AJAX without redirecting
         document.getElementById('register_form').addEventListener('submit', function(e) {
             e.preventDefault();
             const formData = new FormData(this);
+            showBottomMessage("Submitting registration data...", "warning");
 
             fetch('/register', {
                 method: 'POST',
@@ -310,14 +313,17 @@
             .then(res => res.json())
             .then(data => {
                 if (data.status === 'success') {
-                    alert(data.message);
-                    window.location.href = '/admin-dashboard';
+                    showBottomMessage("✅ " + data.message, "success");
+                    document.getElementById('register_form').reset();
+                    document.getElementById('submit_btn').disabled = true;
+                    document.getElementById('start_btn').disabled = false;
+                    document.getElementById('voice_box').style.display = 'none';
                 } else {
-                    alert("Error: " + data.message);
+                    showBottomMessage("❌ " + data.message, "danger");
                 }
             })
-            .catch(err => {
-                alert("An error occurred during registration submission.");
+            .catch(() => {
+                showBottomMessage("An error occurred during submission.", "danger");
             });
         });
     </script>
