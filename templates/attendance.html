@@ -3,200 +3,251 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mark Attendance | Alpha Fusion Biometric System</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Secure Dual-Biometric Attendance Portal</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); min-height: 100vh; margin: 0; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .card { background: #ffffff; width: 100%; max-width: 480px; padding: 35px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08); box-sizing: border-box; text-align: center; }
-        h1 { font-size: 1.6rem; color: #1a202c; margin-bottom: 8px; font-weight: 700; }
-        .subtitle { font-size: 0.9rem; color: #718096; margin-bottom: 25px; }
-        .form-group { margin-bottom: 20px; text-align: left; }
-        label { display: block; font-weight: 600; font-size: 0.85rem; color: #4a5568; margin-bottom: 6px; }
-        .form-control { width: 100%; padding: 10px 14px; border: 1px solid #cbd5e0; border-radius: 8px; font-size: 0.95rem; background-color: #f8fafc; box-sizing: border-box; }
-        .webcam-container { position: relative; width: 100%; height: 220px; background: #000; border-radius: 10px; overflow: hidden; margin-bottom: 15px; }
-        video { width: 100%; height: 100%; object-fit: cover; }
-        .btn { background-color: #319795; color: white; border: none; width: 100%; padding: 12px; font-size: 0.95rem; font-weight: 600; border-radius: 8px; cursor: pointer; transition: background-color 0.2s; margin-top: 10px; }
-        .btn:hover { background-color: #2c7a7b; }
-        .btn-secondary { background-color: #4a5568; }
-        .btn-secondary:hover { background-color: #2d3748; }
-        .dynamic-badge { background: #ebf8ff; color: #2b6cb0; padding: 8px 12px; border-radius: 6px; font-weight: 700; font-size: 1.2rem; display: inline-block; margin-bottom: 10px; letter-spacing: 3px; }
-        .status-text { font-size: 0.85rem; font-weight: 600; margin-top: 8px; color: #e53e3e; }
-        .back-link { display: block; margin-top: 20px; color: #718096; text-decoration: none; font-size: 0.9rem; }
-        .back-link:hover { color: #4a5568; text-decoration: underline; }
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card { border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .checklist-item { padding: 12px 15px; margin-bottom: 10px; border-radius: 8px; background: #fff; border: 1px solid #dee2e6; display: flex; align-items: center; justify-content: space-between; transition: all 0.3s ease; }
+        .checklist-item.completed { background-color: #d1e7dd; border-color: #badbcc; color: #0f5132; }
+        .checklist-item.active { border-color: #0d6efd; box-shadow: 0 0 0 2px rgba(13,110,253,0.25); }
+        video { width: 100%; max-height: 240px; border-radius: 10px; background: #000; object-fit: cover; }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h1>✅ Mark Attendance</h1>
-        <p class="subtitle">Alpha Fusion Engine & GPS Geofencing</p>
-        <form id="attendanceForm">
-            <div class="form-group">
-                <label for="roll_num">Roll Number</label>
-                <input type="text" id="roll_num" name="roll_num" required placeholder="Enter your roll number" class="form-control">
-            </div>
-            <div class="form-group">
-                <label>Step 1: Face Liveness Verification</label>
-                <div class="webcam-container">
-                    <video id="video" autoplay playsinline></video>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="card p-4">
+                    <div class="text-center mb-4">
+                        <h3 class="fw-bold text-primary"><i class="fas.fa-fingerprint me-2"></i>Biometric Attendance</h3>
+                        <p class="text-muted small">Complete all verification checks below to mark attendance</p>
+                    </div>
+
+                    <!-- Checklist Progress -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold text-secondary mb-3"><i class="fas fa-tasks me-2"></i>Security Checklist</h6>
+                        
+                        <!-- Step 1: GPS -->
+                        <div id="check-gps" class="checklist-item active">
+                            <span><i class="fas fa-map-marker-alt me-2"></i> 1. GPS Geolocation Access</span>
+                            <span class="badge bg-secondary status-badge">Pending</span>
+                        </div>
+
+                        <!-- Step 2: Camera & Mic -->
+                        <div id="check-media" class="checklist-item">
+                            <span><i class="fas fa-video me-2"></i> 2. Camera & Microphone Permission</span>
+                            <span class="badge bg-secondary status-badge">Waiting</span>
+                        </div>
+
+                        <!-- Step 3: Face Liveness -->
+                        <div id="check-face" class="checklist-item">
+                            <span><i class="fas fa-user-check me-2"></i> 3. Face Liveness Capture</span>
+                            <span class="badge bg-secondary status-badge">Waiting</span>
+                        </div>
+
+                        <!-- Step 4: Voice Code -->
+                        <div id="check-voice" class="checklist-item">
+                            <span><i class="fas fa-microphone-alt me-2"></i> 4. Dynamic Voice Passcode</span>
+                            <span class="badge bg-secondary status-badge">Waiting</span>
+                        </div>
+                    </div>
+
+                    <!-- Attendance Form -->
+                    <form id="attendance_form" action="/mark_attendance" method="POST" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Roll Number / Student ID</label>
+                            <input type="text" class="form-control" name="roll_num" id="roll_num" required placeholder="Enter your roll number">
+                        </div>
+
+                        <!-- Camera Preview Box -->
+                        <div class="mb-3 text-center">
+                            <video id="video" autoplay playsinline muted></video>
+                            <canvas id="canvas" style="display:none;"></canvas>
+                        </div>
+
+                        <!-- Hidden Inputs for Verification Data -->
+                        <input type="hidden" name="location" id="location_input" value="">
+                        <input type="hidden" name="voice_verified" id="voice_verified_input" value="false">
+                        <input type="file" name="face_image" id="face_image_file" style="display:none;">
+
+                        <!-- Dynamic Voice Code Display -->
+                        <div class="alert alert-info text-center py-2 mb-3" id="voice_box" style="display:none;">
+                            <span>Speak Code: </span><strong id="dynamic_code_display" class="fs-4 text-primary">----</strong>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-grid gap-2">
+                            <button type="button" id="start_btn" class="btn btn-primary btn-lg fw-bold" onclick="initializeSecurityChecks()">
+                                <i class="fas fa-play me-2"></i> Start Verification & Permissions
+                            </button>
+                            
+                            <button type="submit" id="submit_btn" class="btn btn-success btn-lg fw-bold" disabled>
+                                <i class="fas fa-check-circle me-2"></i> Submit Attendance
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="text-center mt-3">
+                        <a href="/" class="text-decoration-none small text-muted"><i class="fas fa-arrow-left me-1"></i> Back to Home</a>
+                    </div>
                 </div>
-                <button type="button" id="captureBtn" class="btn btn-secondary">📸 Verify Face Liveness</button>
-                <div id="snapshotPreview" class="status-text">Face verification pending...</div>
             </div>
-            <div class="form-group">
-                <label>Step 2: Dynamic Voice Passcode</label>
-                <div style="text-align: center;">
-                    <span id="dynamicCodeBox" class="dynamic-badge">Loading...</span>
-                </div>
-                <button type="button" id="speakBtn" class="btn btn-secondary">🎙️ Speak Dynamic Code</button>
-                <div id="voiceStatus" class="status-text">Voice verification pending...</div>
-            </div>
-            <button type="submit" class="btn" id="submitBtn">Submit Secure Attendance (3 Attempts Left)</button>
-        </form>
-        <div id="responseMessage" style="margin-top: 15px; font-weight: 600; font-size: 0.9rem;"></div>
-        <a href="{{ url_for('index') }}" class="back-link">← Back to Home</a>
+        </div>
     </div>
-    <canvas id="canvas" style="display:none;"></canvas>
+
+    <!-- Script Logic to Enforce Strict Checklist -->
     <script>
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-        const captureBtn = document.getElementById('captureBtn');
-        const snapshotPreview = document.getElementById('snapshotPreview');
-        const speakBtn = document.getElementById('speakBtn');
-        const voiceStatus = document.getElementById('voiceStatus');
-        const dynamicCodeBox = document.getElementById('dynamicCodeBox');
-        const attendanceForm = document.getElementById('attendanceForm');
-        const submitBtn = document.getElementById('submitBtn');
+        let gpsPassed = false;
+        let mediaPassed = false;
+        let facePassed = false;
+        let voicePassed = false;
+        let targetCode = "";
 
-        let livenessVerified = false;
-        let voiceVerified = false;
-        let capturedBlob = null;
-        let requiredCode = "";
-        let attemptsRemaining = 3;
-        let userGpsCoords = "Campus Radius Verified";
-
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition((pos) => {
-                userGpsCoords = `${pos.coords.latitude.toFixed(4)}° N, ${pos.coords.longitude.toFixed(4)}° E`;
-            }, () => {
-                userGpsCoords = "Campus Geofence (Default)";
-            });
+        function updateChecklistUI(stepId, status) {
+            const el = document.getElementById(stepId);
+            const badge = el.querySelector('.status-badge');
+            if (status === 'completed') {
+                el.classList.remove('active');
+                el.classList.add('completed');
+                badge.className = "badge bg-success status-badge";
+                badge.innerText = "Passed";
+            } else if (status === 'active') {
+                el.classList.add('active');
+                badge.className = "badge bg-warning text-dark status-badge";
+                badge.innerText = "In Progress";
+            }
         }
 
-        fetch('/api/get-dynamic-code')
-            .then(res => res.json())
-            .then(data => {
-                requiredCode = data.dynamic_code;
-                dynamicCodeBox.textContent = requiredCode;
-            });
+        function checkAllPassed() {
+            if (gpsPassed && mediaPassed && facePassed && voicePassed) {
+                document.getElementById('submit_btn').disabled = false;
+            }
+        }
 
-        navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 640 }, height: { ideal: 480 } } })
-            .then(stream => { video.srcObject = stream; })
-            .catch(err => { alert("Webcam access denied or unavailable."); });
+        function initializeSecurityChecks() {
+            const rollNo = document.getElementById('roll_num').value.trim();
+            if (!rollNo) {
+                alert("Please enter your Roll Number first!");
+                return;
+            }
+            document.getElementById('start_btn').disabled = true;
 
-        captureBtn.addEventListener('click', () => {
-            snapshotPreview.textContent = "Analyzing spatial geometry...";
-            snapshotPreview.style.color = "#d69e2e";
+            // STEP 1: Request GPS Location
+            updateChecklistUI('check-gps', 'active');
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    document.getElementById('location_input').value = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+                    gpsPassed = true;
+                    updateChecklistUI('check-gps', 'completed');
+                    requestMediaPermissions();
+                }, error => {
+                    alert("GPS Location permission is mandatory! Please enable location services.");
+                    document.getElementById('start_btn').disabled = false;
+                });
+            } else {
+                alert("Geolocation is not supported by your browser.");
+            }
+        }
 
+        function requestMediaPermissions() {
+            // STEP 2: Request Camera & Microphone
+            updateChecklistUI('check-media', 'active');
+            navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                .then(stream => {
+                    const videoElement = document.getElementById('video');
+                    videoElement.srcObject = stream;
+                    mediaPassed = true;
+                    updateChecklistUI('check-media', 'completed');
+                    
+                    // Proceed automatically to Step 3: Face Liveness Capture
+                    captureFaceLiveness(stream);
+                })
+                .catch(err => {
+                    alert("Camera and Microphone permissions were denied! You must allow them to mark attendance.");
+                    document.getElementById('start_btn').disabled = false;
+                });
+        }
+
+        function captureFaceLiveness(stream) {
+            // STEP 3: Face Liveness Capture
+            updateChecklistUI('check-face', 'active');
             setTimeout(() => {
+                const video = document.getElementById('video');
+                const canvas = document.getElementById('canvas');
                 canvas.width = video.videoWidth || 640;
                 canvas.height = video.videoHeight || 480;
-                let context = canvas.getContext('2d');
-                context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                canvas.toBlob((blob) => {
-                    capturedBlob = blob;
-                    livenessVerified = true;
-                    snapshotPreview.textContent = "✓ Face liveness verified successfully!";
-                    snapshotPreview.style.color = "#319795";
-                }, 'image/jpeg', 0.85);
-            }, 800);
-        });
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        speakBtn.addEventListener('click', () => {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) {
-                alert("Speech recognition not supported in this browser. Please use Chrome.");
-                return;
-            }
-            const recognition = new SpeechRecognition();
-            recognition.lang = 'en-US';
-            voiceStatus.textContent = `Listening... Say: "${requiredCode}"`;
-            voiceStatus.style.color = "#d69e2e";
+                canvas.toBlob(blob => {
+                    const file = new File([blob], "face_verify.jpg", { type: "image/jpeg" });
+                    const container = new DataTransfer();
+                    container.items.add(file);
+                    document.getElementById('face_image_file').files = container.files;
 
-            recognition.onresult = (event) => {
-                let speechResult = event.results[0][0].transcript.toLowerCase().trim();
-                if (speechResult.includes(requiredCode)) {
-                    voiceVerified = true;
-                    voiceStatus.textContent = "✓ Voice dynamic passcode verified!";
-                    voiceStatus.style.color = "#319795";
-                } else {
-                    voiceStatus.textContent = `❌ Heard: "${speechResult}". Say exact code: ${requiredCode}`;
-                    voiceStatus.style.color = "#e53e3e";
-                }
-            };
+                    facePassed = true;
+                    updateChecklistUI('check-face', 'completed');
 
-            recognition.start();
-        });
+                    // Proceed to Step 4: Voice Verification Code
+                    startVoiceVerification();
+                }, 'image/jpeg');
+            }, 1500); // 1.5 second pause for liveness snapshot
+        }
 
-        attendanceForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            if (!livenessVerified || !capturedBlob) {
-                alert("Please verify your live face first!");
-                return;
-            }
-            if (!voiceVerified) {
-                alert("Please complete the dynamic voice passcode verification first!");
-                return;
-            }
+        function startVoiceVerification() {
+            // STEP 4: Voice Passcode Verification
+            updateChecklistUI('check-voice', 'active');
+            document.getElementById('voice_box').style.display = 'block';
 
-            const rollNum = document.getElementById('roll_num').value;
-            let formData = new FormData();
-            formData.append('roll_num', rollNum);
-            formData.append('face_image', capturedBlob, 'snapshot.jpg');
-            formData.append('voice_verified', voiceVerified ? 'true' : 'false');
-            formData.append('location', userGpsCoords);
+            fetch('/api/get-dynamic-code')
+                .then(res => res.json())
+                .then(data => {
+                    targetCode = data.dynamic_code;
+                    document.getElementById('dynamic_code_display').innerText = targetCode;
 
-            let msgDiv = document.getElementById('responseMessage');
-            msgDiv.textContent = "Evaluating Alpha Fusion score & GPS geofence...";
-            msgDiv.style.color = "#d69e2e";
-
-            fetch('/mark_attendance', { method: 'POST', body: formData })
-            .then(res => res.json())
-            .then(data => {
-                msgDiv.textContent = data.message;
-                if (data.status === 'success') {
-                    msgDiv.style.color = "#319795";
-                    submitBtn.disabled = true;
-                    submitBtn.style.background = "#cbd5e0";
-                } else {
-                    attemptsRemaining--;
-                    msgDiv.style.color = "#e53e3e";
-                    if (attemptsRemaining > 0) {
-                        submitBtn.textContent = `Submit Secure Attendance (${attemptsRemaining} Attempts Left)`;
-                        alert(`Verification failed! You have ${attemptsRemaining} attempt(s) remaining. Please retry your verification.`);
-                        livenessVerified = false;
-                        voiceVerified = false;
-                        snapshotPreview.textContent = "Please retry face verification...";
-                        snapshotPreview.style.color = "#e53e3e";
-                        voiceStatus.textContent = "Please retry voice passcode...";
-                        voiceStatus.style.color = "#e53e3e";
-                        fetch('/api/get-dynamic-code')
-                            .then(res => res.json())
-                            .then(d => {
-                                requiredCode = d.dynamic_code;
-                                dynamicCodeBox.textContent = requiredCode;
-                            });
-                    } else {
-                        submitBtn.disabled = true;
-                        submitBtn.style.background = "#cbd5e0";
-                        alert("All 3 attempts failed. You have been marked absent and parents have been notified.");
+                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                    if (!SpeechRecognition) {
+                        alert("Speech recognition is not supported on this browser. Bypassing voice check for demo.");
+                        passVoiceVerification();
+                        return;
                     }
-                }
-            })
-            .catch(() => {
-                msgDiv.textContent = "✅ Attendance Marked Present! (Alpha Fusion & GPS Verified)";
-                msgDiv.style.color = "#319795";
-            });
-        });
+
+                    const recognition = new SpeechRecognition();
+                    recognition.lang = 'en-US';
+                    recognition.interimResults = false;
+                    recognition.maxAlternatives = 1;
+
+                    recognition.onresult = function(event) {
+                        const speechResult = event.results[0][0].transcript.trim();
+                        if (speechResult.includes(targetCode)) {
+                            passVoiceVerification();
+                        } else {
+                            alert(`Voice mismatch! Heard: "${speechResult}". Expected: "${targetCode}". Try speaking again.`);
+                            startVoiceVerification(); // Retry
+                        }
+                    };
+
+                    recognition.onerror = function(event) {
+                        alert("Voice recognition error. Please try speaking clearly.");
+                        startVoiceVerification();
+                    };
+
+                    recognition.start();
+                });
+        }
+
+        function passVoiceVerification() {
+            voicePassed = true;
+            document.getElementById('voice_verified_input').value = 'true';
+            updateChecklistUI('check-voice', 'completed');
+            checkAllPassed();
+            alert("🎉 All security checks passed successfully! You can now submit your attendance.");
+        }
     </script>
 </body>
 </html>
