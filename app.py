@@ -26,8 +26,9 @@ AUDIO_FOLDER = 'static/audio'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(AUDIO_FOLDER, exist_ok=True)
 
+# Email Configuration with App Password
 SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587
+SMTP_PORT = 465
 SENDER_EMAIL = "toraskarsanket2002@gmail.com"
 SENDER_PASSWORD = "kontuwejlfsuhyig"
 
@@ -102,8 +103,8 @@ def send_parent_email(parent_email, student_name, status, date):
         """
         msg.attach(MIMEText(body, 'plain'))
 
-        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
-        server.starttls()
+        # Using SSL on port 465 for reliable cloud delivery
+        server = smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT)
         server.login(SENDER_EMAIL, SENDER_PASSWORD)
         server.sendmail(SENDER_EMAIL, parent_email, msg.as_string())
         server.quit()
