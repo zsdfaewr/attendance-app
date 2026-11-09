@@ -125,7 +125,7 @@
         </div>
     </div>
 
-    <!-- Script Logic with Bottom Notifications -->
+    <!-- Script Logic with Strict Zero-Bypass Rules -->
     <script>
         let gpsPassed = false;
         let mediaPassed = false;
@@ -157,7 +157,7 @@
         function checkAllPassed() {
             if (gpsPassed && mediaPassed && facePassed && voicePassed) {
                 document.getElementById('submit_btn').disabled = false;
-                showBottomMessage("🎉 All security checks passed! You can now complete registration.", "success");
+                showBottomMessage("🎉 All biometric checks passed! You can now complete registration.", "success");
             }
         }
 
@@ -198,7 +198,7 @@
 
         function requestMediaPermissions() {
             updateChecklistUI('check-media', 'active');
-            showBottomMessage("Requesting camera permissions...", "warning");
+            showBottomMessage("Requesting camera access...", "warning");
 
             navigator.mediaDevices.getUserMedia({ video: true, audio: false })
                 .then(stream => {
@@ -208,14 +208,14 @@
                     setTimeout(captureFaceLiveness, 1000);
                 })
                 .catch(err => {
-                    showBottomMessage("Camera permission was denied.", "danger");
+                    showBottomMessage("Camera permission was denied. Please allow camera permissions to proceed.", "danger");
                     document.getElementById('start_btn').disabled = false;
                 });
         }
 
         function captureFaceLiveness() {
             updateChecklistUI('check-face', 'active');
-            showBottomMessage("Capturing face liveness snapshot...", "warning");
+            showBottomMessage("Capturing face snapshot...", "warning");
 
             const video = document.getElementById('video');
             const canvas = document.getElementById('canvas');
@@ -246,11 +246,11 @@
                 .then(data => {
                     targetCode = data.dynamic_code;
                     document.getElementById('dynamic_code_display').innerText = targetCode;
-                    showBottomMessage(`🎙️ Please speak code: "${targetCode}" clearly into your microphone.`, "warning");
+                    showBottomMessage(`🎙️ Mandatory Security Check: Speak code "${targetCode}" clearly into mic.`, "warning");
 
                     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                     if (!SpeechRecognition) {
-                        passVoiceVerification();
+                        showBottomMessage("Speech recognition API is unavailable in this browser. Please use Google Chrome or Microsoft Edge.", "danger");
                         return;
                     }
 
@@ -259,34 +259,19 @@
                     recognition.interimResults = false;
                     recognition.maxAlternatives = 1;
 
-                    let recognitionCompleted = false;
-                    const speechTimeout = setTimeout(() => {
-                        if (!recognitionCompleted) {
-                            recognition.stop();
-                            if (confirm("Voice listening timeout. Click OK to bypass voice check.")) {
-                                passVoiceVerification();
-                            } else {
-                                startVoiceVerification();
-                            }
-                        }
-                    }, 7000);
-
                     recognition.onresult = function(event) {
-                        recognitionCompleted = true;
-                        clearTimeout(speechTimeout);
                         const speechResult = event.results[0][0].transcript.trim();
                         if (speechResult.includes(targetCode) || speechResult.replace(/\s+/g, '').includes(targetCode)) {
                             passVoiceVerification();
                         } else {
-                            showBottomMessage(`Heard "${speechResult}". Expected "${targetCode}". Retrying...`, "danger");
-                            startVoiceVerification();
+                            showBottomMessage(`❌ Voice passcode mismatch (Heard: "${speechResult}", Expected: "${targetCode}"). Retrying...`, "danger");
+                            setTimeout(startVoiceVerification, 2000);
                         }
                     };
 
-                    recognition.onerror = function() {
-                        recognitionCompleted = true;
-                        clearTimeout(speechTimeout);
-                        passVoiceVerification();
+                    recognition.onerror = function(event) {
+                        showBottomMessage("⚠️ Speech recognition error or silence detected. Please speak clearly.", "danger");
+                        setTimeout(startVoiceVerification, 2000);
                     };
 
                     recognition.start();
@@ -300,7 +285,7 @@
             checkAllPassed();
         }
 
-        // Submit form via AJAX without redirecting
+        // Submit form via AJAX
         document.getElementById('register_form').addEventListener('submit', function(e) {
             e.preventDefault();
             const formData = new FormData(this);
